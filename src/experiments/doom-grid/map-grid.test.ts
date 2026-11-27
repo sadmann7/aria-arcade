@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { gridSize } from "./grid-map";
 import {
   type CellMove,
-  cellKey,
+  gridCellKey,
   mapGrid,
   type MapGridOptions,
 } from "./map-grid";
@@ -25,7 +25,7 @@ function markup() {
       const isDoor = row === door.row && col === door.col;
       const expanded = isDoor ? ' is-expanded="false"' : "";
       const disabled = isWall({ row, col }) ? " is-disabled" : "";
-      return `<cell id="${cellKey({ row, col })}" row="${row}" col="${col}"${expanded}${disabled} aria-label="Cell ${row} ${col}"></cell>`;
+      return `<cell id="${gridCellKey({ row, col })}" row="${row}" col="${col}"${expanded}${disabled} aria-label="Cell ${row} ${col}"></cell>`;
     });
     return `<row>${cells.join("")}</row>`;
   });
@@ -94,7 +94,9 @@ describe("mapGrid", () => {
   });
 
   it("hands other keys to the app, and moves focus from code", async () => {
-    const onCellKey = vi.fn((event: KeyboardEvent) => event.key === "Escape");
+    const onCellKey = vi.fn(
+      (event: KeyboardEvent, _cell: GridCell) => event.key === "Escape",
+    );
     const view = setup({ onCellKey });
     try {
       await view.keys("Tab", "Escape", "x");

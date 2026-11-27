@@ -1,6 +1,7 @@
 "use client";
 
 import { announce, type GridCell } from "@ui-sdk/core";
+import Link from "next/link";
 import * as React from "react";
 
 import {
@@ -18,7 +19,11 @@ import {
   simplifyPath,
 } from "./grid-map";
 import { Inventory } from "./inventory";
-import { type CellMove, cellKey, createMapGridController } from "./map-grid";
+import {
+  type CellMove,
+  createMapGridController,
+  gridCellKey,
+} from "./map-grid";
 import { MapGridCell, MapGridRoot, MapGridRow } from "./map-grid-parts";
 import { SettingSwitch } from "./setting-switch";
 import { weapons } from "./things";
@@ -183,6 +188,12 @@ export function DoomGrid() {
   return (
     <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-8">
       <header className="grid gap-2">
+        <Link
+          href="/"
+          className="w-fit text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          Back to the gallery
+        </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Doom grid</h1>
         <p className="max-w-[70ch] text-sm text-pretty text-muted-foreground">
           Freedoom runs below, and the grid mirrors the 24 by 24 cells around
@@ -252,7 +263,7 @@ export function DoomGrid() {
                   return (
                     <MapGridCell
                       key={col}
-                      id={cellKey({ row, col })}
+                      id={gridCellKey({ row, col })}
                       row={row}
                       col={col}
                       isExpanded={

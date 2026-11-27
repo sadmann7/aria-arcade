@@ -40,7 +40,7 @@ interface CellProps {
   isExpanded?: boolean;
 }
 
-export function cellKey({ row, col }: GridCell) {
+export function gridCellKey({ row, col }: GridCell) {
   return `cell-${row}-${col}`;
 }
 
@@ -60,7 +60,8 @@ export const mapGrid = definePrimitive({
       cols: () => gridSize,
       pageSize: () => 6,
       disabled: (cell) =>
-        context.props<CellProps>("cell", cellKey(cell))?.isDisabled ?? false,
+        context.props<CellProps>("cell", gridCellKey(cell))?.isDisabled ??
+        false,
       onMove: (cell, { from, reason, shift }) =>
         context.options().onCellMove?.(cell, { from, reason, shift }),
     });
