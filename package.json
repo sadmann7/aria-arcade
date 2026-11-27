@@ -13,6 +13,7 @@
     "format:check": "oxfmt --check",
     "lint": "oxlint --deny-warnings .",
     "lint:fix": "oxlint --fix .",
+    "setup:engine": "node src/experiments/doom-grid/engine/build.mjs",
     "start": "next start",
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit"

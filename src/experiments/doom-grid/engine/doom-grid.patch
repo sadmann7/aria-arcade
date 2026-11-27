@@ -1,0 +1,49 @@
+diff --git a/src/g_game.c b/src/g_game.c
+index feb1b68..eb94107 100644
+--- a/src/g_game.c
++++ b/src/g_game.c
+@@ -106,6 +106,7 @@
+ #include "v_palette.h"
+ #include "v_video.h"
+ #include "w_wad.h"
++#include "doom_grid.h"
+ #include "wadsmith.h"
+ #include "wi_stuff.h"
+ #include "ws_stuff.h"
+@@ -875,6 +876,8 @@ void G_BuildTiccmd(ticcmd_t* cmd)
+       cmd->buttons |= BT_USE;
+   }
+ 
++  DOOMGRID_BuildTiccmd(cmd);
++
+   // special buttons
+   if (sendpause && gameaction != ga_newgame)
+     {
+@@ -986,6 +989,7 @@ static void G_DoLoadLevel(boolean from_savegame)
+ 
+   P_SetupLevel(gameepisode, gamemap, gameskill, from_savegame);
+   WADSMITH_TrailStart();
++  DOOMGRID_LevelStart();
+ 
+   MN_OptionsUpdateFreeLook();
+   HU_UpdateTurnFormat();
+diff --git a/src/p_tick.c b/src/p_tick.c
+index e79fe25..8180d7f 100644
+--- a/src/p_tick.c
++++ b/src/p_tick.c
+@@ -30,6 +30,7 @@
+ #include "p_user.h"
+ #include "r_things.h"
+ #include "s_musinfo.h"
++#include "doom_grid.h"
+ #include "wadsmith.h"
+ 
+ int leveltime;
+@@ -415,6 +416,7 @@ void P_Ticker (void)
+   }
+ 
+   WADSMITH_TrailTick();
++  DOOMGRID_Tick();
+   leveltime++;                       // for par times
+ }
+ 
