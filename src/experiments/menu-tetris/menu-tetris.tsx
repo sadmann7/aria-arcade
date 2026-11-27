@@ -220,6 +220,7 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
 
   function steer(action: Action) {
     if (!isStarted || isOver || pausedBy === "user") return;
+    if (pausedBy === "blur") setPausedBy(null);
     if (mode === "clear") {
       setMode("steer");
       boardRef.current?.focus();
