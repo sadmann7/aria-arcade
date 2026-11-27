@@ -294,14 +294,24 @@ void DOOMGRID_BuildTiccmd(ticcmd_t *cmd)
     {
         return;
     }
-    // Respawning and leaving the intermission screen both wait for use.
-    if (press_use && (gamestate != GS_LEVEL || !mo
-                      || player->playerstate == PST_DEAD))
+    // Respawning and leaving the intermission screen both wait for use. The
+    // intermission needs a fresh press to skip its count and another to leave,
+    // so it gets one every other tic until the next level starts.
+    if (press_use && gamestate != GS_LEVEL)
+    {
+        if (gametic & 1)
+        {
+            cmd->buttons |= BT_USE;
+        }
+        return;
+    }
+    if (press_use && mo && player->playerstate == PST_DEAD)
     {
         cmd->buttons |= BT_USE;
         press_use = false;
         return;
     }
+    press_use = false;
     if (gamestate != GS_LEVEL || !mo)
     {
         return;
@@ -552,6 +562,7 @@ void DOOMGRID_LevelStart(void)
     fire_tics = 0;
     fire_target = NULL;
     use_line = -1;
+    press_use = false;
     last_message = NULL;
     WriteLines();
 }

@@ -76,7 +76,8 @@ export function DoomGrid() {
       isPauseOnSelect,
       isIntermission,
     };
-    if (!grid || !origin || !snapshot) return;
+    // The recenter effect below moves focus when the view shifts.
+    if (!grid || !origin || !snapshot || shownOrigin.current !== origin) return;
     const you = gridPosition(origin, snapshot.player.x, snapshot.player.y);
     if (!gridRef.current?.contains(document.activeElement)) {
       controller.track(you);
