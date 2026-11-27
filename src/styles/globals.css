@@ -1,0 +1,29 @@
+@layer ui-sdk;
+
+@import "tailwindcss";
+
+@theme static {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --color-background: #0c0b10;
+  --color-foreground: #ecebf2;
+  --color-card: #16141d;
+  --color-muted: #221f2c;
+  --color-muted-foreground: #8f8a9e;
+  --color-border: #ffffff1a;
+  --color-ring: #c58bff;
+  --color-primary: #ff5fa2;
+  --color-primary-foreground: #160b11;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+}
