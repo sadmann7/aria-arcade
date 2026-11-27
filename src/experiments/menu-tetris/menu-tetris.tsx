@@ -163,6 +163,16 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
 
   React.useEffect(() => {
     if (!isRunning) return;
+    function onVisibilityChange() {
+      if (document.hidden) setPausedBy((current) => current ?? "blur");
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [isRunning]);
+
+  React.useEffect(() => {
+    if (!isRunning) return;
     const timer = setInterval(
       () => session.apply(tick),
       fallInterval(currentLevel),
@@ -217,6 +227,15 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
     session.apply(UPDATES[action]);
   }
 
+  function onPauseButton() {
+    if (pausedBy) {
+      setPausedBy(null);
+      boardRef.current?.focus();
+    } else {
+      togglePause();
+    }
+  }
+
   function togglePause() {
     if (!isStarted || isOver) return;
     setPausedBy((current) => (current ? null : "user"));
@@ -258,7 +277,7 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
     setPausedBy((current) => (current === "blur" ? null : current));
   }
 
-  function onBoardBlur(event: React.FocusEvent<HTMLDivElement>) {
+  function onGameBlur(event: React.FocusEvent<HTMLDivElement>) {
     const next = event.relatedTarget;
     if (next instanceof Node && gameRef.current?.contains(next)) return;
     if (!isStarted || isOver || mode !== "steer") return;
@@ -302,6 +321,7 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
       </header>
       <div
         ref={gameRef}
+        onBlur={onGameBlur}
         className="grid justify-center gap-4 sm:grid-cols-[auto_minmax(0,16rem)] sm:justify-start sm:gap-8"
       >
         <div className="grid justify-items-center gap-3">
@@ -329,7 +349,6 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
             data-mode={mode}
             onKeyDown={onBoardKeyDown}
             onFocus={onBoardFocus}
-            onBlur={onBoardBlur}
             className="group/board relative rounded-xl border-2 border-border bg-card p-1 outline-none [--cell:clamp(0.9rem,min(calc((100vw-3rem)/10.5),calc((100dvh-17rem)/21)),1.75rem)] focus-visible:border-ring data-[mode=clear]:border-primary"
           >
             <div
@@ -474,9 +493,9 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
             <Button
               className={buttonClass}
               disabled={!isStarted || isOver}
-              onClick={togglePause}
+              onClick={onPauseButton}
             >
-              {pausedBy === "user" ? "Resume" : "Pause"}
+              {pausedBy ? "Resume" : "Pause"}
             </Button>
           </div>
           <div id="menu-tetris-help" className="grid gap-1.5 text-sm">

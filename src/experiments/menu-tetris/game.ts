@@ -366,9 +366,14 @@ function clearRow(game: Game, row: number): Game {
     if (cleared >= batch.size) delete batches[batchId];
     else batches[batchId] = { ...batch, cleared };
   }
+  const falling =
+    game.falling && cellsOf(game.falling).every((point) => point.row < row)
+      ? { ...game.falling, row: game.falling.row + 1 }
+      : game.falling;
   return {
     ...game,
     cells,
+    falling,
     rowBatch,
     batches,
     visited: game.visited.filter((id) => !removed.has(id)),

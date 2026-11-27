@@ -403,7 +403,7 @@ export function orientationOf(cells: Point[]) {
   return box.width >= box.height ? "horizontal" : "vertical";
 }
 
-export const PieceWidget = React.memo(function PieceWidget({
+export function PieceWidget({
   piece,
   onRegister,
 }: Omit<PieceWidgetProps, "orientation">) {
@@ -415,4 +415,4 @@ export const PieceWidget = React.memo(function PieceWidget({
       onRegister={onRegister}
     />
   );
-});
+}

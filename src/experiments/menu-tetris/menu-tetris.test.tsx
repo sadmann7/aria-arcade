@@ -395,6 +395,25 @@ describe("MenuTetris", () => {
     expect(document.activeElement).toBe(board());
   });
 
+  test("leaving the game from the pad pauses it, and Resume returns to the board", async () => {
+    const user = await setup(withPieces([]));
+    const pad = screen.getByRole("button", { name: "Move left" });
+    act(() => pad.focus());
+    await flush();
+    expect(screen.queryByText("Paused")).toBeNull();
+
+    act(() => pad.blur());
+    await flush();
+    expect(screen.getByText("Paused")).not.toBeNull();
+
+    await user.click(
+      screen.getAllByRole("button", { name: "Resume" })[1] as HTMLElement,
+    );
+    await flush();
+    expect(screen.queryByText("Paused")).toBeNull();
+    expect(document.activeElement).toBe(board());
+  });
+
   test("the game ends and offers another go", async () => {
     const user = await setup(
       withPieces(

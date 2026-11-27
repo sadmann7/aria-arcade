@@ -349,6 +349,27 @@ describe("arming and clearing", () => {
     ]);
   });
 
+  test("a falling piece above a cleared row drops with the stack", () => {
+    let game = withFalling(bottomRowExcept(createGame(1), [9]), {
+      kind: "O",
+      rotation: 0,
+      row: HEIGHT - 4,
+      col: 0,
+    });
+    game = place(game, 1, "I", [
+      [HEIGHT - 5, 0],
+      [HEIGHT - 1, 9],
+    ]);
+    game = visitAll(
+      game,
+      game.cells
+        .filter((cell) => cell.row === HEIGHT - 1)
+        .map((cell) => cell.id),
+    ).game;
+    expect(game.falling?.row).toBe(HEIGHT - 3);
+    expect(isBlocked(game, cellsOf(must(game.falling)))).toBe(false);
+  });
+
   test("visits in a row that hasn't cleared survive another row clearing", () => {
     let game = bottomRowExcept(createGame(1), []);
     for (let col = 0; col < WIDTH; col++) {
