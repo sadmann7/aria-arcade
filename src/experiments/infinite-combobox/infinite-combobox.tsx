@@ -1,7 +1,10 @@
 "use client";
 
-import type { ChangeSource } from "@ui-sdk/core";
-
+import {
+  announce,
+  type ChangeSource,
+  prepareAnnouncements,
+} from "@ui-sdk/core";
 import { Button } from "@ui-sdk/react/button";
 import {
   Combobox,
@@ -90,7 +93,12 @@ function DoorList({ depth, doors, elements }: DoorListProps) {
   );
 }
 
-function useLayer(depth: number, doors: Door[], onChoose: OnChoose) {
+function useLayer(
+  depth: number,
+  doors: Door[],
+  isTop: boolean,
+  onChoose: OnChoose,
+) {
   const [controller] = React.useState(() => createComboboxController());
   const [query, setQuery] = React.useState("");
   const [quip, setQuip] = React.useState<string | null>(null);
@@ -103,7 +111,11 @@ function useLayer(depth: number, doors: Door[], onChoose: OnChoose) {
     const door = doors.find((candidate) => candidate.value === value);
     if (!door) return;
     setQuip(door.quip);
-    if (door.quip !== null) details.cancel();
+    if (door.quip !== null) {
+      details.cancel();
+      announce(door.quip);
+      if (details.source !== "touch") controller.focus();
+    }
     onChoose(
       depth,
       door,
@@ -113,8 +125,16 @@ function useLayer(depth: number, doors: Door[], onChoose: OnChoose) {
     );
   }
 
-  function onQueryChange(next: string, details: { reason: string }) {
-    if (details.reason !== "item-press") setQuery(next);
+  function onQueryChange(
+    next: string,
+    details: { reason: string; cancel: () => void },
+  ) {
+    if (details.reason === "item-press") return;
+    if (!isTop && details.reason === "input-change") {
+      details.cancel();
+      return;
+    }
+    setQuery(next);
   }
 
   return { controller, elements, query, quip, onValueChange, onQueryChange };
@@ -136,7 +156,7 @@ const Surface = React.memo(function Surface({
   onChoose,
 }: SurfaceProps) {
   const doors = getDoors(1, "surface");
-  const layer = useLayer(1, doors, onChoose);
+  const layer = useLayer(1, doors, isTop, onChoose);
 
   return (
     <Combobox
@@ -182,9 +202,7 @@ const Surface = React.memo(function Surface({
         </ComboboxEmpty>
         <DoorList depth={1} doors={doors} elements={layer.elements} />
         {layer.quip ? (
-          <p aria-live="polite" className="px-3 pb-1 text-muted-foreground">
-            {layer.quip}
-          </p>
+          <p className="px-3 pb-1 text-muted-foreground">{layer.quip}</p>
         ) : null}
       </ComboboxContent>
     </Combobox>
@@ -209,7 +227,7 @@ const Layer = React.memo(function Layer({
   onClimb,
 }: LayerProps) {
   const doors = getDoors(depth, step.door.label);
-  const layer = useLayer(depth, doors, onChoose);
+  const layer = useLayer(depth, doors, isTop, onChoose);
 
   function climb(shouldFocus: boolean) {
     if (shouldFocus) {
@@ -267,9 +285,7 @@ const Layer = React.memo(function Layer({
         </ComboboxEmpty>
         <DoorList depth={depth} doors={doors} elements={layer.elements} />
         {layer.quip ? (
-          <p aria-live="polite" className="px-3 pb-1 text-muted-foreground">
-            {layer.quip}
-          </p>
+          <p className="px-3 pb-1 text-muted-foreground">{layer.quip}</p>
         ) : null}
       </ComboboxContent>
     </Combobox>
@@ -328,6 +344,10 @@ export function InfiniteCombobox() {
   const [record, setRecord] = React.useState(0);
 
   const depth = isSurfaceOpen ? chain.length + 1 : 0;
+
+  React.useEffect(() => {
+    prepareAnnouncements(document);
+  }, []);
   const isBottom = depth === BOTTOM;
 
   const onSurfaceOpenChange = React.useCallback((open: boolean) => {

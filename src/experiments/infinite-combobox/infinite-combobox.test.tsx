@@ -168,6 +168,33 @@ describe("InfiniteCombobox", () => {
     expect(screen.getByText(deadEnd.quip)).not.toBeNull();
   });
 
+  test("a dead end in a lower layer keeps focus in that layer", async () => {
+    const user = await openSurface();
+    const first = firstDeeperDoor(1, "surface");
+    await choose(user, 1, first.label);
+    const second = firstDeeperDoor(2, first.label);
+    await choose(user, 2, second.label);
+    const deadEnd = getDoors(2, first.label).find((door) => door.quip);
+    if (!deadEnd) throw new Error("Layer 2 has no dead end");
+
+    await choose(user, 2, deadEnd.label);
+    expect(layer(3)).toBeNull();
+    expect(document.activeElement).toBe(layer(2));
+  });
+
+  test("typing in a lower layer leaves the open layers alone", async () => {
+    const user = await openSurface();
+    const first = firstDeeperDoor(1, "surface");
+    await choose(user, 1, first.label);
+
+    const surface = layer(1);
+    if (!surface) throw new Error("Layer 1 is not open");
+    await user.type(surface, "zzz");
+    await flush();
+    expect(layer(2)).not.toBeNull();
+    expect(surface).toHaveProperty("value", first.label);
+  });
+
   test("choosing the same door again after climbing back reopens it", async () => {
     const user = await openSurface();
     const first = firstDeeperDoor(1, "surface");
