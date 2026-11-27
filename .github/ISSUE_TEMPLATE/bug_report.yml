@@ -1,0 +1,31 @@
+name: Bug report
+description: Create a bug report to help us improve
+title: "[bug]: "
+labels: ["🐞❔ unconfirmed bug"]
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of the bug, as well as what you expected to happen when encountering it.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: How to reproduce
+      description: A step-by-step description of how to reproduce the bug.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. See error
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Experiment
+      description: The experiment route that shows the problem, such as `/menu-tetris`, and the browser and input you used (keyboard, mouse, touch or a screen reader).
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: Add any other information related to the bug here, screenshots if applicable.
