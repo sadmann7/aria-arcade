@@ -18,7 +18,7 @@ import {
   simplifyPath,
 } from "./grid-map";
 import { Inventory } from "./inventory";
-import { type CellMove, createMapGridController } from "./map-grid";
+import { type CellMove, cellKey, createMapGridController } from "./map-grid";
 import { MapGridCell, MapGridRoot, MapGridRow } from "./map-grid-parts";
 import { SettingSwitch } from "./setting-switch";
 import { weapons } from "./things";
@@ -176,11 +176,6 @@ export function DoomGrid() {
     return true;
   };
 
-  const isCellDisabled = (cell: GridCell) => {
-    const target = cellAt(cell);
-    return !target || !isFocusable(target);
-  };
-
   const weapon = snapshot
     ? weapons.find((candidate) => candidate.index === snapshot.player.weapon)
     : undefined;
@@ -245,7 +240,6 @@ export function DoomGrid() {
             aria-label="Map"
             aria-describedby="doom-grid-keys"
             controller={controller}
-            isCellDisabled={isCellDisabled}
             onCellMove={onCellMove}
             onCellActivate={onCellActivate}
             onCellKey={onCellKey}
@@ -258,7 +252,7 @@ export function DoomGrid() {
                   return (
                     <MapGridCell
                       key={col}
-                      id={`doom-cell-${row}-${col}`}
+                      id={cellKey({ row, col })}
                       row={row}
                       col={col}
                       isExpanded={
@@ -269,9 +263,7 @@ export function DoomGrid() {
                       aria-label={
                         cell && snapshot ? describeCell(cell, snapshot) : "Wall"
                       }
-                      aria-disabled={
-                        !cell || !isFocusable(cell) ? "true" : undefined
-                      }
+                      isDisabled={!cell || !isFocusable(cell)}
                       className={cellClass(cell)}
                     >
                       <span aria-hidden>{cellGlyph(cell)}</span>

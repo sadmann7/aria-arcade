@@ -69,11 +69,14 @@ export function describeChanges(
   }
 
   const doors = new Map(previous.doors.map((door) => [door.line, door]));
+  const movedSectors = new Set<number>();
   for (const door of next.doors) {
     const old = doors.get(door.line);
     if (!old || !door.isMoving || old.isMoving) continue;
+    if (movedSectors.has(door.sector)) continue;
+    movedSectors.add(door.sector);
     say(
-      `door:${door.line}`,
+      `door:${door.sector}`,
       door.open > old.open || old.open === 0
         ? `Door opening, ${directionFrom(player, door)}.`
         : `Door closing, ${directionFrom(player, door)}.`,

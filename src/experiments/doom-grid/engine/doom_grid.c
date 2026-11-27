@@ -435,8 +435,9 @@ static void WriteThings(const mobj_t *player)
     Append("]");
 }
 
-// Doors are [line, x, y, open, moving, key], where open is the gap under the
-// door sector's ceiling in map units.
+// Doors are [line, x, y, open, moving, key, sector], where open is the gap
+// under the door sector's ceiling in map units. A door's two faces share a
+// sector.
 static void WriteDoors(const mobj_t *player)
 {
     int doors = 0;
@@ -455,9 +456,10 @@ static void WriteDoors(const mobj_t *player)
             continue;
         }
         const sector_t *door = line->backsector;
-        Append("%s[%d,%d,%d,%d,%d,%d]", doors ? "," : "", i, (int)x, (int)y,
-               Units(door->ceilingheight - door->floorheight),
-               door->ceilingdata != NULL, DoorKey(line->special));
+        Append("%s[%d,%d,%d,%d,%d,%d,%d]", doors ? "," : "", i, (int)x,
+               (int)y, Units(door->ceilingheight - door->floorheight),
+               door->ceilingdata != NULL, DoorKey(line->special),
+               (int)(door - sectors));
         doors++;
     }
     Append("]");

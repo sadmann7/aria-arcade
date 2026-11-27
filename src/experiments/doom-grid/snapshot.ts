@@ -36,6 +36,7 @@ export interface Door {
   open: number;
   isMoving: boolean;
   key: number;
+  sector: number;
 }
 
 export type WalkState = "idle" | "moving" | "arrived" | "blocked";
@@ -74,7 +75,7 @@ interface RawSnapshot {
   player: Omit<Player, "dead"> & { dead: number };
   monsters: [number, number, number, number, number, number, number][];
   items: [number, number, number, number][];
-  doors: [number, number, number, number, number, number][];
+  doors: [number, number, number, number, number, number, number][];
   walk: [number, number];
   shots: number;
   firing: number;
@@ -104,13 +105,14 @@ export function parseSnapshot(json: string): Snapshot | null {
       isVisible: visible !== 0,
     })),
     items: raw.items.map(([id, type, x, y]) => ({ id, type, x, y })),
-    doors: raw.doors.map(([line, x, y, open, moving, key]) => ({
+    doors: raw.doors.map(([line, x, y, open, moving, key, sector]) => ({
       line,
       x,
       y,
       open,
       isMoving: moving !== 0,
       key,
+      sector,
     })),
     walk: { seq: raw.walk[0], state: walkStates[raw.walk[1]] ?? "idle" },
     shots: raw.shots,

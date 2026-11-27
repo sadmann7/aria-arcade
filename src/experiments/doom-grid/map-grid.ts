@@ -22,7 +22,6 @@ export interface MapGridController {
 }
 
 export interface MapGridOptions {
-  isCellDisabled?: (cell: GridCell) => boolean;
   onCellMove?: (cell: GridCell, move: CellMove) => void;
   onCellActivate?: (cell: GridCell) => void;
   onCellKey?: (event: KeyboardEvent, cell: GridCell) => boolean;
@@ -37,13 +36,17 @@ interface CellProps {
   id: string;
   row: number;
   col: number;
+  isDisabled?: boolean;
   isExpanded?: boolean;
+}
+
+export function cellKey({ row, col }: GridCell) {
+  return `cell-${row}-${col}`;
 }
 
 export const mapGrid = definePrimitive({
   name: "map-grid",
   options: {
-    isCellDisabled: "value",
     onCellMove: "callback",
     onCellActivate: "callback",
     onCellKey: "action",
@@ -56,7 +59,8 @@ export const mapGrid = definePrimitive({
       rows: () => gridSize,
       cols: () => gridSize,
       pageSize: () => 6,
-      disabled: (cell) => context.options().isCellDisabled?.(cell) ?? false,
+      disabled: (cell) =>
+        context.props<CellProps>("cell", cellKey(cell))?.isDisabled ?? false,
       onMove: (cell, { from, reason, shift }) =>
         context.options().onCellMove?.(cell, { from, reason, shift }),
     });
@@ -81,6 +85,7 @@ export const mapGrid = definePrimitive({
         id: "string",
         row: "number",
         col: "number",
+        isDisabled: "boolean",
         isExpanded: "boolean",
       },
       role: "gridcell",
@@ -103,7 +108,8 @@ export const mapGrid = definePrimitive({
         "t",
       ],
       attrs: (state, { props, api }) => ({
-        tabindex: api.grid.tabIndex(state, props),
+        tabindex: props.isDisabled ? "-1" : api.grid.tabIndex(state, props),
+        "aria-disabled": props.isDisabled ? "true" : undefined,
         "aria-expanded":
           props.isExpanded === undefined ? undefined : String(props.isExpanded),
         "data-active": api.grid.isActive(state, props) ? "" : undefined,

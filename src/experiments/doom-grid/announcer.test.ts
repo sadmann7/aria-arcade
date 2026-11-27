@@ -74,11 +74,23 @@ describe("describeChanges", () => {
     ]);
   });
 
-  it("reports a door starting to open", () => {
-    const door = { line: 9, x: 32, y: 160, open: 0, isMoving: false, key: 0 };
-    const closed = testSnapshot({ doors: [door] });
+  it("reports a door starting to open once for both its faces", () => {
+    const door = {
+      line: 9,
+      x: 32,
+      y: 160,
+      open: 0,
+      isMoving: false,
+      key: 0,
+      sector: 4,
+    };
+    const otherFace = { ...door, line: 10, y: 176 };
+    const closed = testSnapshot({ doors: [door, otherFace] });
     const opening = testSnapshot({
-      doors: [{ ...door, open: 4, isMoving: true }],
+      doors: [
+        { ...door, open: 4, isMoving: true },
+        { ...otherFace, open: 4, isMoving: true },
+      ],
     });
     expect(texts(describeChanges(closed, opening))).toEqual([
       "Door opening, 2 cells north.",

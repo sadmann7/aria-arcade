@@ -37,7 +37,15 @@ const room: Line[] = [
   wall(192, 64, 192, 0),
   wall(192, 0, 128, 0),
 ];
-const closedDoor = { line: 7, x: 128, y: 32, open: 0, isMoving: false, key: 1 };
+const closedDoor = {
+  line: 7,
+  x: 128,
+  y: 32,
+  open: 0,
+  isMoving: false,
+  key: 1,
+  sector: 2,
+};
 
 describe("grid position", () => {
   it("puts the player near the middle, with north up", () => {
