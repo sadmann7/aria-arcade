@@ -34,7 +34,7 @@ export function describeChanges(
   }
   const player = next.player;
   if (player.dead && !previous.player.dead) {
-    say("death", "You died. Press Enter on your cell to restart.", "assertive");
+    say("death", "You died. Press Enter on the map to restart.", "assertive");
     return said;
   }
   if (!player.dead && previous.player.dead) say("death", "Back on your feet.");

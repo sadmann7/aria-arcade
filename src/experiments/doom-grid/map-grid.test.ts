@@ -113,6 +113,49 @@ describe("mapGrid", () => {
     }
   });
 
+  it("moves the tab stop to a cell without taking focus", async () => {
+    const view = setup();
+    try {
+      view.api.track({ row: 12, col: 12 });
+      await view.settle();
+      const stops = view.root.querySelectorAll('[tabindex="0"]');
+      expect(stops).toHaveLength(1);
+      expect(stops[0]?.getAttribute("aria-label")).toBe("Cell 12 12");
+      expect(document.activeElement).toBe(document.body);
+      await view.keys("Tab");
+      expect(focused()).toBe("Cell 12 12");
+    } finally {
+      view.unmount();
+    }
+  });
+
+  it("keeps the tab stop on the active cell after it turns into a wall", async () => {
+    const view = setup();
+    try {
+      view.api.track({ row: 0, col: 4 });
+      await view.settle();
+      const stops = view.root.querySelectorAll('[tabindex="0"]');
+      expect(stops).toHaveLength(1);
+      expect(stops[0]?.getAttribute("aria-label")).toBe("Cell 0 4");
+    } finally {
+      view.unmount();
+    }
+  });
+
+  it("ignores a click on a wall", async () => {
+    const onCellActivate = vi.fn();
+    const view = setup({ onCellActivate });
+    try {
+      const wall = view.part("cell", gridCellKey({ row: 0, col: 4 }));
+      if (!wall) throw new Error("The wall cell is missing.");
+      await view.click(wall);
+      expect(onCellActivate).not.toHaveBeenCalled();
+      expect(focused()).not.toBe("Cell 0 4");
+    } finally {
+      view.unmount();
+    }
+  });
+
   it("marks walls disabled and a door's cell as expanded or not", () => {
     const view = setup();
     try {

@@ -31,8 +31,9 @@
 
 #define EXPORT EMSCRIPTEN_KEEPALIVE
 
-// The grid is 24 cells of 64 units across, so this reaches one cell past it.
-#define RANGE (13 * 64)
+// The grid is 24 cells of 64 units across and only recenters once the player
+// is 5 cells from an edge, so this reaches one cell past its far side.
+#define RANGE (20 * 64)
 #define MAX_THINGS 192
 #define SNAPSHOT_SIZE 65536
 #define FIRE_TICS 8
@@ -77,7 +78,7 @@ static int shots;
 
 static int use_line = -1;
 static int use_tics;
-static boolean respawn;
+static boolean press_use;
 
 static const char *last_message;
 static char message[256];
@@ -289,7 +290,19 @@ void DOOMGRID_BuildTiccmd(ticcmd_t *cmd)
 {
     player_t *player = Player();
     mobj_t *mo = player->mo;
-    if (gamestate != GS_LEVEL || !mo || menuactive || paused)
+    if (menuactive || paused)
+    {
+        return;
+    }
+    // Respawning and leaving the intermission screen both wait for use.
+    if (press_use && (gamestate != GS_LEVEL || !mo
+                      || player->playerstate == PST_DEAD))
+    {
+        cmd->buttons |= BT_USE;
+        press_use = false;
+        return;
+    }
+    if (gamestate != GS_LEVEL || !mo)
     {
         return;
     }
@@ -298,11 +311,6 @@ void DOOMGRID_BuildTiccmd(ticcmd_t *cmd)
         walk_state = WALK_IDLE;
         fire_tics = 0;
         use_line = -1;
-        if (respawn)
-        {
-            cmd->buttons |= BT_USE;
-            respawn = false;
-        }
         return;
     }
     if (walk_state == WALK_MOVING)
@@ -584,9 +592,9 @@ EXPORT int doom_grid_walk_state(void)
     return walk_state;
 }
 
-EXPORT void doom_grid_respawn(void)
+EXPORT void doom_grid_press_use(void)
 {
-    respawn = true;
+    press_use = true;
 }
 
 // Aims at a monster from the snapshot and holds fire long enough for one shot

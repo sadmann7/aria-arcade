@@ -25,6 +25,7 @@ export function Inventory({ player, onWeaponChange }: InventoryProps) {
   return (
     <Listbox
       aria-label="Inventory"
+      activation="manual"
       value={String(player.weapon)}
       onValueChange={(value) => {
         const weapon = weapons.find((w) => String(w.index) === value);

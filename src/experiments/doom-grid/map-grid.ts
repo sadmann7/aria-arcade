@@ -18,6 +18,7 @@ export interface CellMove {
 
 export interface MapGridController {
   focusCell: (cell: GridCell) => boolean;
+  track: (cell: GridCell) => void;
   active: () => GridCell | null;
 }
 
@@ -69,6 +70,7 @@ export const mapGrid = definePrimitive({
       grid,
       active: () => grid.active(),
       focusCell: (cell: GridCell) => grid.focus(cell, { reason: "imperative" }),
+      track: (cell: GridCell) => context.store.set({ active: cell }),
       activate: (cell: GridCell) => context.options().onCellActivate?.(cell),
       handleKey: (event: KeyboardEvent, cell: GridCell) =>
         context.options().onCellKey?.(event, cell) ?? false,
@@ -107,9 +109,13 @@ export const mapGrid = definePrimitive({
         " ",
         "Escape",
         "t",
+        "T",
       ],
       attrs: (state, { props, api }) => ({
-        tabindex: props.isDisabled ? "-1" : api.grid.tabIndex(state, props),
+        tabindex:
+          props.isDisabled && !api.grid.isActive(state, props)
+            ? "-1"
+            : api.grid.tabIndex(state, props),
         "aria-disabled": props.isDisabled ? "true" : undefined,
         "aria-expanded":
           props.isExpanded === undefined ? undefined : String(props.isExpanded),
@@ -128,11 +134,17 @@ export const mapGrid = definePrimitive({
           if (key.ctrlKey || key.metaKey || key.altKey) return;
           if (api.handleKey(key, cell)) key.preventDefault();
         },
-        pointerdown: (event, { api, props }) =>
-          api.grid.focus(props, { reason: "item-press", event }),
+        pointerdown: (event, { api, props }) => {
+          if (props.isDisabled) {
+            event.preventDefault();
+            return;
+          }
+          api.grid.focus(props, { reason: "item-press", event });
+        },
       },
-      press: ({ api, props }) =>
-        api.activate({ row: props.row, col: props.col }),
+      press: ({ api, props }) => {
+        if (!props.isDisabled) api.activate({ row: props.row, col: props.col });
+      },
       bind: (el, { api, props }) => api.grid.bind(el, props),
     }),
   }),

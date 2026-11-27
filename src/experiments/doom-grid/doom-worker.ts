@@ -16,7 +16,8 @@ interface DoomModule {
   _doom_grid_walk(x: number, y: number): void;
   _doom_grid_walk_state(): number;
   _doom_grid_stop(): void;
-  _doom_grid_respawn(): void;
+  _doom_grid_press_use(): void;
+  _wadsmith_game_state(): number;
   _doom_grid_fire(id: number): number;
   _doom_grid_use(line: number): number;
   _doom_grid_set_speed(percent: number): void;
@@ -33,7 +34,7 @@ export type DoomRequest =
   | { type: "stop" }
   | { type: "fire"; id: number }
   | { type: "use"; line: number }
-  | { type: "respawn" }
+  | { type: "continue" }
   | { type: "weapon"; key: string }
   | { type: "speed"; percent: number }
   | { type: "pause"; isPaused: boolean };
@@ -46,6 +47,7 @@ export type DoomResponse =
       height: number;
     }
   | { type: "snapshot"; json: string; lines: string | null }
+  | { type: "intermission" }
   | { type: "error"; message: string };
 
 const scope = self as unknown as Worker;
@@ -80,6 +82,10 @@ let path: { x: number; y: number }[] = [];
 const walkArrived = 2;
 const walkMoving = 1;
 const keyTapMs = 120;
+const intermissionState = 1;
+let gameState = -1;
+let speed = 100;
+let isPaused = false;
 const errors: string[] = [];
 
 scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
@@ -95,6 +101,8 @@ scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
     );
     return;
   }
+  if (request.type === "speed") speed = request.percent;
+  if (request.type === "pause") isPaused = request.isPaused;
   if (!doom) return;
   const engine = doom;
   if (request.type === "path") {
@@ -105,7 +113,7 @@ scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
     engine._doom_grid_stop();
   } else if (request.type === "fire") engine._doom_grid_fire(request.id);
   else if (request.type === "use") engine._doom_grid_use(request.line);
-  else if (request.type === "respawn") engine._doom_grid_respawn();
+  else if (request.type === "continue") engine._doom_grid_press_use();
   else if (request.type === "weapon") {
     const key = request.key.charCodeAt(0);
     engine._wadsmith_key(1, key);
@@ -145,6 +153,8 @@ async function start(engineBase: string) {
     "-nosfx",
   ]);
   doom = engine;
+  engine._doom_grid_set_speed(speed);
+  if (isPaused) engine._wadsmith_set_paused(1);
   setInterval(runFrame, frameMs);
 }
 
@@ -156,6 +166,11 @@ function walkNext(engine: DoomModule) {
 function runFrame() {
   if (!doom) return;
   doom._wadsmith_run_frame();
+  const state = doom._wadsmith_game_state();
+  if (state !== gameState && state === intermissionState) {
+    post({ type: "intermission" });
+  }
+  gameState = state;
   const walk = doom._doom_grid_walk_state();
   if (walk === walkArrived && path.length > 0) walkNext(doom);
   else if (walk !== walkMoving) path = [];

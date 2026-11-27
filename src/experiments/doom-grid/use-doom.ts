@@ -21,6 +21,7 @@ export interface DoomView {
   snapshot: Snapshot | null;
   lines: Line[];
   origin: Origin | null;
+  isIntermission: boolean;
   error: string | null;
 }
 
@@ -30,6 +31,7 @@ export function useDoom(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
     snapshot: null,
     lines: [],
     origin: null,
+    isIntermission: false,
     error: null,
   });
 
@@ -51,13 +53,29 @@ export function useDoom(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
       if (response.type === "frame") {
         const context = canvasRef.current?.getContext("2d");
         if (!context) return;
-        if (image?.width !== response.width) {
+        if (
+          context.canvas.width !== response.width ||
+          image?.width !== response.width
+        ) {
           context.canvas.width = response.width;
           context.canvas.height = response.height;
           image = new ImageData(response.width, response.height);
         }
         image.data.set(new Uint8ClampedArray(response.buffer));
         context.putImageData(image, 0, 0);
+        return;
+      }
+      if (response.type === "intermission") {
+        throttle.push(
+          {
+            key: "level",
+            text: "Map complete. Press Enter on the map to continue.",
+            priority: "assertive",
+            cooldownMs: 0,
+          },
+          performance.now(),
+        );
+        setView((current) => ({ ...current, isIntermission: true }));
         return;
       }
       if (response.type === "error") {
@@ -76,7 +94,7 @@ export function useDoom(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
       if (now - lastRender < renderEveryMs && response.lines === null) return;
       lastRender = now;
       origin = followPlayer(origin, snapshot.player.x, snapshot.player.y);
-      setView({ snapshot, lines, origin, error: null });
+      setView({ snapshot, lines, origin, isIntermission: false, error: null });
     };
     worker.addEventListener("message", onMessage);
     const speaker = setInterval(() => {

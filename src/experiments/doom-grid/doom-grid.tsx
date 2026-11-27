@@ -37,12 +37,14 @@ interface Latest {
   origin: Origin | null;
   player: { x: number; y: number; dead: boolean } | null;
   isPauseOnSelect: boolean;
+  isIntermission: boolean;
 }
 
 export function DoomGrid() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const gridRef = React.useRef<HTMLDivElement>(null);
-  const { snapshot, lines, origin, error, send } = useDoom(canvasRef);
+  const { snapshot, lines, origin, isIntermission, error, send } =
+    useDoom(canvasRef);
   const [isViewShown, setIsViewShown] = React.useState(true);
   const [isSlow, setIsSlow] = React.useState(false);
   const [isPauseOnSelect, setIsPauseOnSelect] = React.useState(false);
@@ -52,6 +54,7 @@ export function DoomGrid() {
     origin: null,
     player: null,
     isPauseOnSelect: false,
+    isIntermission: false,
   });
   const isPausedForTarget = React.useRef(false);
   const shownOrigin = React.useRef<Origin | null>(null);
@@ -71,7 +74,19 @@ export function DoomGrid() {
       origin,
       player: snapshot ? snapshot.player : null,
       isPauseOnSelect,
+      isIntermission,
     };
+    if (!grid || !origin || !snapshot) return;
+    const you = gridPosition(origin, snapshot.player.x, snapshot.player.y);
+    if (!gridRef.current?.contains(document.activeElement)) {
+      controller.track(you);
+      return;
+    }
+    const active = controller.active();
+    const cell = active
+      ? grid.mapCells[active.row * gridSize + active.col]
+      : null;
+    if (cell && !isFocusable(cell)) controller.focusCell(you);
   });
 
   React.useEffect(() => {
@@ -135,8 +150,8 @@ export function DoomGrid() {
   const onCellActivate = (cell: GridCell) => {
     const target = cellAt(cell);
     if (!target) return;
-    if (latest.current.player?.dead) {
-      send({ type: "respawn" });
+    if (latest.current.player?.dead || latest.current.isIntermission) {
+      send({ type: "continue" });
       return;
     }
     const [monster] = target.monsters;
@@ -157,7 +172,7 @@ export function DoomGrid() {
       controller.focusCell(gridPosition(shown, player.x, player.y));
       return true;
     }
-    if (event.key !== "t") return false;
+    if (event.key.toLowerCase() !== "t") return false;
     const you = gridPosition(shown, player.x, player.y);
     const targets = current.mapCells
       .filter((candidate) => candidate.monsters.length > 0)
@@ -251,6 +266,15 @@ export function DoomGrid() {
             aria-label="Map"
             aria-describedby="doom-grid-keys"
             controller={controller}
+            onBlur={(event) => {
+              const next = event.relatedTarget;
+              if (
+                !(next instanceof Node) ||
+                !event.currentTarget.contains(next)
+              ) {
+                setTargetPause(false);
+              }
+            }}
             onCellMove={onCellMove}
             onCellActivate={onCellActivate}
             onCellKey={onCellKey}
