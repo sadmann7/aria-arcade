@@ -23,6 +23,7 @@ import { BOTTOM, type Door, getDoors } from "./doors";
 interface Step {
   door: Door;
   opener: ComboboxController;
+  anchor: HTMLElement | null;
   isTouch: boolean;
 }
 
@@ -30,11 +31,12 @@ type OnChoose = (
   depth: number,
   door: Door,
   opener: ComboboxController,
+  anchor: HTMLElement | null,
   source: ChangeSource,
 ) => void;
 
 const contentClass =
-  "z-10 grid w-[min(16rem,calc(100vw-1rem))] gap-2 rounded-xl border border-t-4 border-border border-t-(--layer-color) bg-card p-2 text-sm text-foreground shadow-2xl shadow-black/60 transition-[opacity,scale] duration-150 origin-(--transform-origin) data-starting-style:scale-90 data-starting-style:opacity-0 motion-reduce:transition-none";
+  "grid w-[min(16rem,calc(100vw-1rem))] gap-2 rounded-xl border border-t-4 border-border border-t-(--layer-color) bg-card p-2 text-sm text-foreground shadow-xl shadow-black/50 transition-[opacity,scale] duration-150 origin-(--transform-origin) rotate-(--layer-tilt) data-bottom:ring-2 data-bottom:ring-primary data-starting-style:scale-90 data-starting-style:opacity-0 motion-reduce:transition-none";
 
 const itemClass =
   "flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 select-none data-highlighted:bg-muted data-selected:text-primary data-selected:font-medium";
@@ -42,19 +44,24 @@ const itemClass =
 const inputClass =
   "h-10 w-full min-w-0 rounded-lg border border-border bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring sm:text-sm";
 
-function layerColor(depth: number) {
-  return `oklch(0.72 0.17 ${(depth * 29) % 360})`;
+function layerStyle(depth: number) {
+  return {
+    "--layer-color": `oklch(0.72 0.17 ${(depth * 29) % 360})`,
+    "--layer-tilt": `${depth === 1 ? 0 : (((depth * 37) % 7) - 3) * 0.6}deg`,
+  } as React.CSSProperties;
 }
 
 function isTouch(event: MouseEvent) {
   return "pointerType" in event && event.pointerType === "touch";
 }
 
-function doorKey(depth: number, value: string) {
-  return `${depth}-${value}`;
+interface DoorListProps {
+  depth: number;
+  doors: Door[];
+  elements: Map<string, HTMLElement>;
 }
 
-function DoorList({ depth, doors }: { depth: number; doors: Door[] }) {
+function DoorList({ depth, doors, elements }: DoorListProps) {
   return (
     <ComboboxList className="grid max-h-64 gap-0.5 overflow-y-auto overscroll-contain">
       {doors.map((door) => (
@@ -62,7 +69,13 @@ function DoorList({ depth, doors }: { depth: number; doors: Door[] }) {
           key={door.value}
           value={door.value}
           label={door.label}
-          data-door={doorKey(depth, door.value)}
+          ref={(node: HTMLDivElement | null) => {
+            if (!node) return;
+            elements.set(door.value, node);
+            return () => {
+              elements.delete(door.value);
+            };
+          }}
           className={itemClass}
         >
           {door.label}
@@ -81,6 +94,7 @@ function useLayer(depth: number, doors: Door[], onChoose: OnChoose) {
   const [controller] = React.useState(() => createComboboxController());
   const [query, setQuery] = React.useState("");
   const [quip, setQuip] = React.useState<string | null>(null);
+  const [elements] = React.useState(() => new Map<string, HTMLElement>());
 
   function onValueChange(
     value: string | null,
@@ -90,14 +104,20 @@ function useLayer(depth: number, doors: Door[], onChoose: OnChoose) {
     if (!door) return;
     setQuip(door.quip);
     if (door.quip !== null) details.cancel();
-    onChoose(depth, door, controller, details.source);
+    onChoose(
+      depth,
+      door,
+      controller,
+      elements.get(door.value) ?? null,
+      details.source,
+    );
   }
 
   function onQueryChange(next: string, details: { reason: string }) {
     if (details.reason !== "item-press") setQuery(next);
   }
 
-  return { controller, query, quip, onValueChange, onQueryChange };
+  return { controller, elements, query, quip, onValueChange, onQueryChange };
 }
 
 interface SurfaceProps {
@@ -155,12 +175,12 @@ const Surface = React.memo(function Surface({
         sideOffset={6}
         collisionPadding={8}
         className={contentClass}
-        style={{ "--layer-color": layerColor(1) } as React.CSSProperties}
+        style={layerStyle(1)}
       >
-        <ComboboxEmpty className="px-3 py-2 text-muted-foreground">
+        <ComboboxEmpty className="px-3 py-2 text-muted-foreground empty:hidden">
           No doors match.
         </ComboboxEmpty>
-        <DoorList depth={1} doors={doors} />
+        <DoorList depth={1} doors={doors} elements={layer.elements} />
         {layer.quip ? (
           <p aria-live="polite" className="px-3 pb-1 text-muted-foreground">
             {layer.quip}
@@ -215,15 +235,15 @@ const Layer = React.memo(function Layer({
       presentation="popover"
     >
       <ComboboxContent
-        anchor={`[data-door="${doorKey(depth - 1, step.door.value)}"]`}
+        anchor={step.anchor}
         side="right"
         align="start"
         sideOffset={4}
         alignOffset={-8}
         collisionPadding={8}
-        data-depth={depth}
+        data-bottom={depth === BOTTOM ? "" : undefined}
         className={contentClass}
-        style={{ "--layer-color": layerColor(depth) } as React.CSSProperties}
+        style={layerStyle(depth)}
       >
         <div className="flex items-center justify-between gap-2 pl-1">
           <ComboboxLabel className="font-medium tabular-nums">
@@ -242,10 +262,10 @@ const Layer = React.memo(function Layer({
           placeholder="Search doors…"
           className={inputClass}
         />
-        <ComboboxEmpty className="px-3 py-2 text-muted-foreground">
+        <ComboboxEmpty className="px-3 py-2 text-muted-foreground empty:hidden">
           No doors match.
         </ComboboxEmpty>
-        <DoorList depth={depth} doors={doors} />
+        <DoorList depth={depth} doors={doors} elements={layer.elements} />
         {layer.quip ? (
           <p aria-live="polite" className="px-3 pb-1 text-muted-foreground">
             {layer.quip}
@@ -256,7 +276,13 @@ const Layer = React.memo(function Layer({
   );
 });
 
-function Hud({ depth, record }: { depth: number; record: number }) {
+interface HudProps {
+  depth: number;
+  record: number;
+  onBackOut: (event: React.MouseEvent) => void;
+}
+
+function Hud({ depth, record, onBackOut }: HudProps) {
   const ref = React.useRef<HTMLDivElement>(null);
   const isBottom = depth === BOTTOM;
 
@@ -271,7 +297,7 @@ function Hud({ depth, record }: { depth: number; record: number }) {
       ref={ref}
       popover="manual"
       data-bottom={isBottom ? "" : undefined}
-      className="pointer-events-none fixed inset-auto top-3 right-3 m-0 grid gap-0.5 rounded-xl border border-border bg-card/90 px-3 py-2 text-right text-xs text-muted-foreground tabular-nums shadow-lg backdrop-blur data-bottom:border-primary data-bottom:text-primary"
+      className="pointer-events-none fixed inset-auto top-3 right-3 m-0 grid gap-0.5 rounded-xl border border-border bg-card/90 px-3 py-2 text-right text-xs text-muted-foreground tabular-nums shadow-lg data-bottom:border-primary data-bottom:text-primary"
     >
       <span>
         Depth <strong className="text-base text-foreground">{depth}</strong> /{" "}
@@ -282,6 +308,15 @@ function Hud({ depth, record }: { depth: number; record: number }) {
         <span className="animate-bounce font-medium motion-reduce:animate-none">
           You hit the bottom!
         </span>
+      ) : null}
+      {depth > 1 ? (
+        <Button
+          aria-label={`Back out of layer ${depth}`}
+          onClick={onBackOut}
+          className="pointer-events-auto mt-1 h-10 rounded-lg border border-border bg-muted px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          ↑ Back out
+        </Button>
       ) : null}
     </div>
   );
@@ -300,20 +335,33 @@ export function InfiniteCombobox() {
     if (open) setRecord((current) => Math.max(current, 1));
   }, []);
 
-  const onChoose = React.useCallback<OnChoose>((from, door, opener, source) => {
-    setChain((current) => {
-      const kept = current.slice(0, from - 1);
-      if (door.quip !== null) return kept;
-      return [...kept, { door, opener, isTouch: source === "touch" }];
-    });
-    if (door.quip === null) {
-      setRecord((current) => Math.max(current, from + 1));
-    }
-  }, []);
+  const onChoose = React.useCallback<OnChoose>(
+    (from, door, opener, anchor, source) => {
+      setChain((current) => {
+        const kept = current.slice(0, from - 1);
+        if (door.quip !== null) return kept;
+        return [...kept, { door, opener, anchor, isTouch: source === "touch" }];
+      });
+      if (door.quip === null) {
+        setRecord((current) => Math.max(current, from + 1));
+      }
+    },
+    [],
+  );
 
   const onClimb = React.useCallback((from: number) => {
     setChain((current) => current.slice(0, from - 2));
   }, []);
+
+  function onBackOut(event: React.MouseEvent) {
+    const step = chain.at(-1);
+    if (!step) return;
+    if (!isTouch(event.nativeEvent)) {
+      step.opener.focus();
+      step.opener.highlight(step.door.value);
+    }
+    setChain(chain.slice(0, -1));
+  }
 
   return (
     <main className="mx-auto grid min-h-dvh w-full max-w-3xl content-start gap-8 px-4 py-12 sm:py-16">
@@ -329,7 +377,7 @@ export function InfiniteCombobox() {
         </h1>
         <p className="max-w-[60ch] text-pretty text-muted-foreground">
           Every door opens another combobox. The bottom is {BOTTOM} layers down.
-          Escape climbs back up one layer at a time, and so does the ↑ button.
+          Escape climbs back up one layer at a time, and so does Back out.
         </p>
       </header>
       <div className="max-w-xs">
@@ -343,7 +391,7 @@ export function InfiniteCombobox() {
       </div>
       {chain.map((step, index) => (
         <Layer
-          key={doorKey(index + 1, step.door.value)}
+          key={`${index + 1}-${step.door.value}`}
           depth={index + 2}
           step={step}
           isTop={index === chain.length - 1}
@@ -352,7 +400,7 @@ export function InfiniteCombobox() {
           onClimb={onClimb}
         />
       ))}
-      <Hud key={depth} depth={depth} record={record} />
+      <Hud key={depth} depth={depth} record={record} onBackOut={onBackOut} />
       <p role="status" className="sr-only">
         {isBottom
           ? `Layer ${BOTTOM}. You hit the bottom. Now climb back up.`

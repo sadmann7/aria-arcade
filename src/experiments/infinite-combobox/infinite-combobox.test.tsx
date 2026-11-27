@@ -142,6 +142,22 @@ describe("InfiniteCombobox", () => {
     expect(layer(2)).not.toBeNull();
   });
 
+  test("the HUD backs out of the top layer from anywhere", async () => {
+    const user = await openSurface();
+    const first = firstDeeperDoor(1, "surface");
+    await choose(user, 1, first.label);
+    const second = firstDeeperDoor(2, first.label);
+    await choose(user, 2, second.label);
+
+    await user.click(
+      screen.getByRole("button", { name: "Back out of layer 3" }),
+    );
+    await flush();
+    expect(layer(3)).toBeNull();
+    expect(document.activeElement).toBe(layer(2));
+    expect(highlighted(2)).toContain(second.label);
+  });
+
   test("a dead end says something and opens nothing", async () => {
     const user = await openSurface();
     const deadEnd = getDoors(1, "surface").find((door) => door.quip !== null);
