@@ -14,7 +14,9 @@ interface DoomModule {
   _doom_grid_snapshot(): number;
   _doom_grid_lines(): number;
   _doom_grid_walk(x: number, y: number): void;
+  _doom_grid_walk_state(): number;
   _doom_grid_stop(): void;
+  _doom_grid_respawn(): void;
   _doom_grid_fire(id: number): number;
   _doom_grid_use(line: number): number;
   _doom_grid_set_speed(percent: number): void;
@@ -27,11 +29,12 @@ type CreateDoom = (options: {
 
 export type DoomRequest =
   | { type: "start"; engineBase: string }
-  | { type: "walk"; x: number; y: number }
+  | { type: "path"; points: { x: number; y: number }[] }
   | { type: "stop" }
   | { type: "fire"; id: number }
   | { type: "use"; line: number }
-  | { type: "key"; key: number; isPressed: boolean }
+  | { type: "respawn" }
+  | { type: "weapon"; key: string }
   | { type: "speed"; percent: number }
   | { type: "pause"; isPaused: boolean };
 
@@ -73,6 +76,10 @@ autosave 0
 let doom: DoomModule | null = null;
 let lastTic = -1;
 let lastLevel = -1;
+let path: { x: number; y: number }[] = [];
+const walkArrived = 2;
+const walkMoving = 1;
+const keyTapMs = 120;
 const errors: string[] = [];
 
 scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
@@ -89,14 +96,23 @@ scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
     return;
   }
   if (!doom) return;
-  if (request.type === "walk") doom._doom_grid_walk(request.x, request.y);
-  else if (request.type === "stop") doom._doom_grid_stop();
-  else if (request.type === "fire") doom._doom_grid_fire(request.id);
-  else if (request.type === "use") doom._doom_grid_use(request.line);
-  else if (request.type === "key")
-    doom._wadsmith_key(request.isPressed ? 1 : 0, request.key);
-  else if (request.type === "speed") doom._doom_grid_set_speed(request.percent);
-  else doom._wadsmith_set_paused(request.isPaused ? 1 : 0);
+  const engine = doom;
+  if (request.type === "path") {
+    path = request.points;
+    walkNext(engine);
+  } else if (request.type === "stop") {
+    path = [];
+    engine._doom_grid_stop();
+  } else if (request.type === "fire") engine._doom_grid_fire(request.id);
+  else if (request.type === "use") engine._doom_grid_use(request.line);
+  else if (request.type === "respawn") engine._doom_grid_respawn();
+  else if (request.type === "weapon") {
+    const key = request.key.charCodeAt(0);
+    engine._wadsmith_key(1, key);
+    setTimeout(() => engine._wadsmith_key(0, key), keyTapMs);
+  } else if (request.type === "speed") {
+    engine._doom_grid_set_speed(request.percent);
+  } else engine._wadsmith_set_paused(request.isPaused ? 1 : 0);
 });
 
 async function start(engineBase: string) {
@@ -132,9 +148,17 @@ async function start(engineBase: string) {
   setInterval(runFrame, frameMs);
 }
 
+function walkNext(engine: DoomModule) {
+  const next = path.shift();
+  if (next) engine._doom_grid_walk(next.x, next.y);
+}
+
 function runFrame() {
   if (!doom) return;
   doom._wadsmith_run_frame();
+  const walk = doom._doom_grid_walk_state();
+  if (walk === walkArrived && path.length > 0) walkNext(doom);
+  else if (walk !== walkMoving) path = [];
   sendFrame(doom);
   const tic = doom._doom_grid_tic();
   if (tic === lastTic) return;
