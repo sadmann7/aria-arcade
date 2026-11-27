@@ -11,4 +11,10 @@ export const experiments: Experiment[] = [
     description:
       "Every option opens another combobox, 400 layers deep. Escape climbs back up one at a time.",
   },
+  {
+    slug: "menu-tetris",
+    title: "Menu Tetris",
+    description:
+      "Tetris with toolbars, menubars and tab lists for pieces. A full row only clears once you arrow through every cell in it.",
+  },
 ];

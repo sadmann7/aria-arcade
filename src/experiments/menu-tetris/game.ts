@@ -151,16 +151,15 @@ function draw(bag: Kind[], seed: number) {
   let pool = bag;
   let state = seed;
   if (pool.length === 0) {
-    const shuffled = [...KINDS];
-    for (let index = shuffled.length - 1; index > 0; index--) {
+    const rolls = KINDS.map((kind) => {
       const roll = random(state);
       state = roll.seed;
-      const swap = Math.floor(roll.value * (index + 1));
-      [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]];
-    }
-    pool = shuffled;
+      return { kind, key: roll.value };
+    });
+    pool = rolls.sort((a, b) => a.key - b.key).map((roll) => roll.kind);
   }
-  return { kind: pool[0], bag: pool.slice(1), seed: state };
+  const [kind = "I", ...rest] = pool;
+  return { kind, bag: rest, seed: state };
 }
 
 export function spawnPoint(kind: Kind): Point {
@@ -344,8 +343,8 @@ export function hardDrop(game: Game): Game {
 }
 
 function clearRow(game: Game, row: number): Game {
-  const batchId = game.rowBatch[row];
-  const batch = batchId === null ? null : game.batches[batchId];
+  const batchId = game.rowBatch[row] ?? null;
+  const batch = batchId === null ? undefined : game.batches[batchId];
   const cleared = batch ? batch.cleared + 1 : 1;
   const points =
     ((LINE_POINTS[Math.min(cleared, 4)] ?? 0) -
@@ -421,7 +420,7 @@ export function landedPieces(game: Game): LandedPiece[] {
     byPiece.set(cell.pieceId, list);
   }
   return [...byPiece]
-    .map(([id, cells]) => ({ id, kind: game.kinds[id], cells }))
+    .map(([id, cells]) => ({ id, kind: game.kinds[id] ?? "I", cells }))
     .sort((a, b) => {
       const lowestA = Math.max(...a.cells.map((cell) => cell.row));
       const lowestB = Math.max(...b.cells.map((cell) => cell.row));

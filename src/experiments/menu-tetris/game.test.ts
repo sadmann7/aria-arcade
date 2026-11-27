@@ -11,8 +11,8 @@ import {
   hardDrop,
   HEIGHT,
   isBlocked,
-  KINDS,
   type Kind,
+  KINDS,
   landedPieces,
   level,
   move,
@@ -25,7 +25,12 @@ import {
   WIDTH,
 } from "./game";
 
-function place(game: Game, pieceId: number, kind: Kind, points: number[][]) {
+function place(
+  game: Game,
+  pieceId: number,
+  kind: Kind,
+  points: [number, number][],
+) {
   return {
     ...game,
     kinds: { ...game.kinds, [pieceId]: kind },
@@ -39,6 +44,11 @@ function place(game: Game, pieceId: number, kind: Kind, points: number[][]) {
       })),
     ],
   };
+}
+
+function must<T>(value: T | null | undefined): T {
+  if (value === null || value === undefined) throw new Error("Missing value");
+  return value;
 }
 
 function withFalling(game: Game, falling: Omit<Falling, "id">): Game {
@@ -85,7 +95,7 @@ describe("pieces", () => {
     const game = createGame(7);
     expect(game.falling).not.toBeNull();
     expect(KINDS).toContain(game.next);
-    const rows = cellsOf(game.falling!).map((point) => point.row);
+    const rows = cellsOf(must(game.falling)).map((point) => point.row);
     expect(Math.min(...rows)).toBe(0);
   });
 
@@ -99,7 +109,7 @@ describe("pieces", () => {
 
   test("the bag deals all seven pieces before repeating", () => {
     let game = createGame(3);
-    const dealt: Kind[] = [game.falling!.kind];
+    const dealt: Kind[] = [must(game.falling).kind];
     for (let index = 0; index < 6; index++) {
       dealt.push(game.next);
       game = { ...hardDrop(game), cells: [], kinds: {} };
@@ -182,7 +192,7 @@ describe("collision", () => {
   test("a soft drop moves down one row and scores one", () => {
     const game = createGame(1);
     const dropped = softDrop(game);
-    expect(dropped.falling?.row).toBe(game.falling!.row + 1);
+    expect(dropped.falling?.row).toBe(must(game.falling).row + 1);
     expect(dropped.score).toBe(1);
   });
 
@@ -217,7 +227,7 @@ describe("rotation", () => {
     });
     const turned = rotate(game, 1);
     expect(turned.falling?.rotation).toBe(1);
-    expect(cellsOf(turned.falling!)).toEqual(
+    expect(cellsOf(must(turned.falling))).toEqual(
       expect.arrayContaining([
         { row: 5, col: 5 },
         { row: 6, col: 5 },
@@ -247,7 +257,7 @@ describe("rotation", () => {
     });
     const turned = rotate(game, 1);
     expect(turned.falling?.rotation).toBe(2);
-    for (const point of cellsOf(turned.falling!)) {
+    for (const point of cellsOf(must(turned.falling))) {
       expect(point.col).toBeGreaterThanOrEqual(0);
     }
   });
@@ -295,7 +305,7 @@ describe("arming and clearing", () => {
       ids.at(-1),
     ]);
 
-    game = visit(almost.game, ids.at(-1)!).game;
+    game = visit(almost.game, must(ids.at(-1))).game;
     expect(armedRows(game)).toEqual([]);
     expect(game.cells).toHaveLength(0);
     expect(game.lines).toBe(1);
@@ -304,14 +314,14 @@ describe("arming and clearing", () => {
 
   test("visiting the same cell twice counts once", () => {
     const game = bottomRowExcept(createGame(1), []);
-    const id = game.cells[0].id;
+    const id = must(game.cells[0]).id;
     const once = visit(game, id).game;
     expect(visit(once, id).game).toBe(once);
   });
 
   test("visiting a cell in an unarmed row does nothing", () => {
     const game = bottomRowExcept(createGame(1), [0]);
-    const result = visit(game, game.cells[0].id);
+    const result = visit(game, must(game.cells[0]).id);
     expect(result.game).toBe(game);
     expect(result.cleared).toEqual([]);
   });
@@ -344,7 +354,7 @@ describe("arming and clearing", () => {
     for (let col = 0; col < WIDTH; col++) {
       game = place(game, 400 + col, "I", [[HEIGHT - 2, col]]);
     }
-    const upper = game.cells.find((cell) => cell.row === HEIGHT - 2)!;
+    const upper = must(game.cells.find((cell) => cell.row === HEIGHT - 2));
     game = visit(game, upper.id).game;
     const bottom = game.cells
       .filter((cell) => cell.row === HEIGHT - 1)
