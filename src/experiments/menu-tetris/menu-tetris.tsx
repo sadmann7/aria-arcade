@@ -443,7 +443,9 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
                 gridTemplateRows: "repeat(2, var(--cell))",
               }}
             >
-              <PieceWidget key={game.next} piece={nextView(game.next)} />
+              {isStarted ? (
+                <PieceWidget key={game.next} piece={nextView(game.next)} />
+              ) : null}
             </div>
           </div>
           <p

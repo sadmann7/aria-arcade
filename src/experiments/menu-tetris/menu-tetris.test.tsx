@@ -308,6 +308,76 @@ describe("MenuTetris", () => {
     expect(said).toContain("Row 1 cleared. 1 armed row left.");
   });
 
+  test("a radio piece keeps its tab stop after its checked cell clears", async () => {
+    const user = await setup(
+      withPieces([
+        [
+          1,
+          "J",
+          [
+            [BOTTOM - 1, 0],
+            [BOTTOM, 0],
+            [BOTTOM, 1],
+            [BOTTOM, 2],
+          ],
+        ],
+        [
+          2,
+          "I",
+          [
+            [BOTTOM, 3],
+            [BOTTOM, 4],
+            [BOTTOM, 5],
+            [BOTTOM, 6],
+          ],
+        ],
+        [
+          3,
+          "I",
+          [
+            [BOTTOM, 7],
+            [BOTTOM, 8],
+            [BOTTOM, 9],
+          ],
+        ],
+      ]),
+    );
+    await user.tab();
+    await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
+    await user.tab();
+    await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
+    await user.tab();
+    await user.keyboard("{ArrowRight}{ArrowRight}");
+    await flush();
+    expect(document.activeElement).toBe(board());
+
+    await user.tab();
+    await flush();
+    expect(focusedCell()).toBe("Yes, row 1, column 1");
+  });
+
+  test("a tab list piece adds no hidden tab stops", async () => {
+    await setup(
+      withPieces([
+        [
+          1,
+          "S",
+          [
+            [BOTTOM - 1, 1],
+            [BOTTOM - 1, 2],
+            [BOTTOM, 0],
+            [BOTTOM, 1],
+          ],
+        ],
+      ]),
+    );
+    const panels = document.querySelectorAll("[role=tabpanel]");
+    expect(panels.length).toBeGreaterThan(0);
+    for (const panel of panels) {
+      expect(panel.getAttribute("tabindex")).toBe("-1");
+    }
+  });
+
   test("Space drops the falling piece onto the stack as a new widget", async () => {
     const user = await setup(withPieces([]));
     function landed() {

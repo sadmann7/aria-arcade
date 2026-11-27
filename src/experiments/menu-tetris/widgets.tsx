@@ -158,7 +158,6 @@ interface PieceWidgetProps {
 
 interface Placed {
   cell: CellView;
-  style: React.CSSProperties;
   props: {
     "aria-label": string;
     "data-cell": string;
@@ -184,7 +183,6 @@ function place(piece: PieceView, orientation: "horizontal" | "vertical") {
     };
     return {
       cell,
-      style,
       props: {
         "aria-label": cellLabel(piece.kind, cell),
         "data-cell": cell.id,
@@ -330,7 +328,12 @@ function TabsPiece({ piece, orientation, onRegister }: PieceWidgetProps) {
         ))}
       </TabsList>
       {layout.items.map((item) => (
-        <TabsPanel key={item.cell.id} value={item.cell.id} className="sr-only">
+        <TabsPanel
+          key={item.cell.id}
+          value={item.cell.id}
+          tabIndex={-1}
+          className="sr-only"
+        >
           {itemOf(piece.kind, item.cell.id)[0]} panel. Nothing in here but a
           block.
         </TabsPanel>
