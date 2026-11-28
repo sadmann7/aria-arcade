@@ -1,16 +1,7 @@
 import type { PixelGridController } from "./pixel-grid";
 import type { DoomFrame } from "./use-doom";
 
-import { pixelKey, rowKey } from "./pixel-grid";
-import {
-  columnStops,
-  hexColor,
-  pixelCount,
-  rowGradient,
-  rowsFor,
-} from "./resolution";
-
-export type PaintMode = "cells" | "rows" | "direct" | "canvas";
+import { pixelCount, rowsFor } from "./resolution";
 
 export interface FrameStats {
   fps: number;
@@ -26,12 +17,10 @@ interface PainterOptions {
 }
 
 interface PainterTarget {
-  cells: () => Iterable<HTMLElement>;
   onDrawn: () => void;
 }
 
 const statsEveryMs = 1000;
-const noChanges: Record<string, number> = {};
 
 function emptyTotals() {
   return {
@@ -49,12 +38,8 @@ export function createPainter({ controller, onStats }: PainterOptions) {
   let target: PainterTarget | null = null;
   let after: MessageChannel | null = null;
   let columns = 0;
-  let mode: PaintMode = "cells";
   let current = new Int32Array(0);
-  let keys: string[] = [];
-  let rowKeys: string[] = [];
-  let stops: string[] = [];
-  let elements: HTMLElement[] | null = null;
+  let rows = 0;
   let pending: DoomFrame | null = null;
   let frameRequest = 0;
   let totals = emptyTotals();
@@ -95,12 +80,7 @@ export function createPainter({ controller, onStats }: PainterOptions) {
     if (!frame) return;
     const start = performance.now();
     const colors = new Int32Array(frame.buffer);
-    const changed =
-      mode === "rows"
-        ? paintRows(colors)
-        : mode === "canvas"
-          ? paintCanvas(colors)
-          : paintCells(colors);
+    const changed = paintCanvas(colors);
     current = colors;
     drawn = {
       start,
@@ -123,7 +103,7 @@ export function createPainter({ controller, onStats }: PainterOptions) {
     let changed = 0;
     let top = -1;
     let bottom = -1;
-    for (let row = 0; row < rowKeys.length; row += 1) {
+    for (let row = 0; row < rows; row += 1) {
       const rowChanged = changedIn(colors, row);
       if (rowChanged === 0) continue;
       changed += rowChanged;
@@ -134,70 +114,13 @@ export function createPainter({ controller, onStats }: PainterOptions) {
     return changed;
   }
 
-  function paintRows(colors: Int32Array) {
-    const changedRows: Record<string, string> = {};
-    let changed = 0;
-    for (let row = 0; row < rowKeys.length; row += 1) {
-      const rowChanged = changedIn(colors, row);
-      if (rowChanged === 0) continue;
-      changed += rowChanged;
-      changedRows[rowKeys[row] ?? ""] = rowGradient(
-        colors,
-        row,
-        columns,
-        stops,
-      );
-    }
-    controller.paintRows(colors, changedRows);
-    return changed;
-  }
-
-  function paintCells(colors: Int32Array) {
-    const changedIndexes: number[] = [];
-    const changedKeys: Record<string, number> = {};
-    for (let index = 0; index < colors.length; index += 1) {
-      if (colors[index] === current[index]) continue;
-      changedIndexes.push(index);
-      if (mode === "cells") changedKeys[keys[index] ?? ""] = colors[index] ?? 0;
-    }
-    if (mode === "cells") {
-      controller.paint(colors, changedKeys);
-    } else {
-      controller.paint(colors, noChanges);
-      elements ??= [...(target?.cells() ?? [])];
-      for (const index of changedIndexes) {
-        const cell = elements[index];
-        if (cell) cell.style.backgroundColor = hexColor(colors[index] ?? 0);
-      }
-    }
-    return changedIndexes.length;
-  }
-
   return {
     resize(next: number) {
       columns = next;
       current = new Int32Array(pixelCount(next)).fill(-1);
-      keys = Array.from({ length: pixelCount(next) }, (_, index) =>
-        pixelKey(Math.floor(index / next), index % next),
-      );
-      rowKeys = Array.from({ length: rowsFor(next) }, (_, row) => rowKey(row));
-      stops = columnStops(next);
-      elements = null;
+      rows = rowsFor(next);
       pending = null;
       totals = emptyTotals();
-    },
-    setMode(next: PaintMode) {
-      if (next === mode) return;
-      if (mode === "rows") {
-        controller.paintRows(
-          current,
-          Object.fromEntries(rowKeys.map((key) => [key, ""])),
-        );
-      }
-      if (mode === "canvas") controller.clearCanvas();
-      mode = next;
-      // The new mode starts from nothing, so its first frame paints every pixel.
-      current = new Int32Array(current.length).fill(-1);
     },
     colorAt(row: number, col: number) {
       return Math.max(0, current[row * columns + col] ?? 0);

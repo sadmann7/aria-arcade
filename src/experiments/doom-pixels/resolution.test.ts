@@ -2,12 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   columnChoices,
-  columnStops,
   downsample,
   hexColor,
   pixelCount,
   resolutionLabel,
-  rowGradient,
   rowsFor,
 } from "./resolution";
 
@@ -35,14 +33,5 @@ describe("resolution", () => {
   it("writes colors as six digit hex", () => {
     expect(hexColor(0)).toBe("#000000");
     expect(hexColor(0xf8f8f8)).toBe("#f8f8f8");
-  });
-
-  it("draws a scanline as one hard stop per run of equal colors", () => {
-    const colors = new Int32Array([0xf80000, 0xf80000, 0xf80000, 0x0000f8]);
-    expect(columnStops(4)).toEqual(["0%", "25%", "50%", "75%", "100%"]);
-    expect(rowGradient(colors, 0, 4, columnStops(4))).toBe(
-      "linear-gradient(90deg,#f80000 0% 75%,#0000f8 75% 100%)",
-    );
-    expect(columnStops(3)[1]).toBe("33.333%");
   });
 });

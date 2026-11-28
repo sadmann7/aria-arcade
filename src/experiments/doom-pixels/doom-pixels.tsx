@@ -2,12 +2,6 @@
 
 import { announce, type GridCell, prepareAnnouncements } from "@ui-sdk/core";
 import { Button } from "@ui-sdk/react/button";
-import { Field, FieldLabel } from "@ui-sdk/react/field";
-import {
-  SegmentedControl,
-  SegmentedControlIndicator,
-  SegmentedControlItem,
-} from "@ui-sdk/react/segmented-control";
 import {
   Select,
   SelectContent,
@@ -21,7 +15,7 @@ import * as React from "react";
 
 import { Controls } from "./controls";
 import { doomKey, pauseCode } from "./keys";
-import { createPainter, type FrameStats, type PaintMode } from "./painter";
+import { createPainter, type FrameStats } from "./painter";
 import { createPixelGridController, pixelKey, rowKey } from "./pixel-grid";
 import {
   PixelGridCanvas,
@@ -43,7 +37,6 @@ import { type DoomFrame, useDoom } from "./use-doom";
 
 export function DoomPixels() {
   const [columns, setColumns] = React.useState<number>(defaultColumns);
-  const [mode, setMode] = React.useState<PaintMode>("canvas");
   const [isGridShown, setIsGridShown] = React.useState(false);
   const [isSoundOn, setIsSoundOn] = React.useState(true);
   const [isPaused, setIsPaused] = React.useState(false);
@@ -79,10 +72,6 @@ export function DoomPixels() {
   React.useEffect(
     () =>
       painter.attach({
-        cells: () =>
-          stageRef.current?.querySelectorAll<HTMLElement>(
-            '[data-slot="pixel-grid-cell"]',
-          ) ?? [],
         onDrawn: () => send({ type: "drawn" }),
       }),
     [painter, send],
@@ -97,10 +86,6 @@ export function DoomPixels() {
     });
     return () => cancelAnimationFrame(frame);
   }, [columns, painter]);
-
-  React.useEffect(() => {
-    painter.setMode(mode);
-  }, [mode, painter]);
 
   React.useEffect(() => {
     send({ type: "pause", isPaused: !isPlaying });
@@ -238,29 +223,6 @@ export function DoomPixels() {
             ))}
           </SelectContent>
         </Select>
-        <Field className="grid gap-1">
-          <FieldLabel className="text-xs text-muted-foreground">
-            Paint with
-          </FieldLabel>
-          <SegmentedControl
-            value={mode}
-            onValueChange={(value) => {
-              if (isPaintMode(value)) setMode(value);
-            }}
-            className="relative flex h-8 rounded-md border border-border bg-card p-0.5 text-sm"
-          >
-            <SegmentedControlIndicator className="absolute inset-y-0.5 left-(--indicator-left) w-(--indicator-width) rounded bg-muted transition-[left,width] motion-reduce:transition-none" />
-            {paintModes.map((paintMode) => (
-              <SegmentedControlItem
-                key={paintMode}
-                value={paintMode}
-                className="relative rounded px-2.5 focus-visible:outline-2 focus-visible:outline-ring data-checked:text-foreground"
-              >
-                {paintLabels[paintMode]}
-              </SegmentedControlItem>
-            ))}
-          </SegmentedControl>
-        </Field>
         <div className="flex h-8 flex-wrap items-center gap-x-5 gap-y-2">
           <SettingSwitch
             label="Show grid"
@@ -297,7 +259,6 @@ export function DoomPixels() {
         <div
           ref={stageRef}
           data-paused={isPaused ? "" : undefined}
-          data-paint={mode}
           className="group relative aspect-8/5 w-full max-w-[calc((100dvh-12rem)*1.6)] min-w-0 overflow-hidden rounded-md bg-black ring-1 ring-border focus-within:ring-2 focus-within:ring-ring"
         >
           {error ? (
@@ -336,12 +297,7 @@ export function DoomPixels() {
       </div>
       <footer className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 text-xs text-muted-foreground">
         <Controls />
-        <Readout
-          columns={columns}
-          mode={mode}
-          stats={stats}
-          buildMs={buildMs}
-        />
+        <Readout columns={columns} stats={stats} buildMs={buildMs} />
       </footer>
     </main>
   );
@@ -391,7 +347,7 @@ const PixelGrid = React.memo(function PixelGrid({
               id={pixelKey(row, col)}
               row={row}
               col={col}
-              className="group-data-[paint=rows]:bg-transparent!group-data-paused:focus-visible:relative outline-none group-data-[paint=canvas]:bg-transparent! group-data-paused:focus-visible:z-10 group-data-paused:focus-visible:outline-2 group-data-paused:focus-visible:outline-ring group-data-paused:focus-visible:outline-solid"
+              className="outline-none group-data-paused:focus-visible:relative group-data-paused:focus-visible:z-10 group-data-paused:focus-visible:outline-2 group-data-paused:focus-visible:outline-ring group-data-paused:focus-visible:outline-solid"
             />
           ))}
         </PixelGridRow>
@@ -400,31 +356,17 @@ const PixelGrid = React.memo(function PixelGrid({
   );
 });
 
-const paintLabels: Record<PaintMode, string> = {
-  cells: "Live cells",
-  rows: "Live rows",
-  direct: "Style writes",
-  canvas: "Canvas",
-};
-
-const paintModes = Object.keys(paintLabels) as PaintMode[];
-
-function isPaintMode(value: unknown): value is PaintMode {
-  return paintModes.some((paintMode) => paintMode === value);
-}
-
 interface ReadoutProps {
   columns: number;
-  mode: PaintMode;
   stats: FrameStats | null;
   buildMs: number | null;
 }
 
-function Readout({ columns, mode, stats, buildMs }: ReadoutProps) {
+function Readout({ columns, stats, buildMs }: ReadoutProps) {
   const total = pixelCount(columns);
   return (
     <p className="tabular-nums">
-      {total.toLocaleString("en-US")} cells · {paintLabels[mode].toLowerCase()}
+      {total.toLocaleString("en-US")} cells
       {buildMs === null ? "" : ` · built in ${Math.round(buildMs)} ms`}
       {stats
         ? ` · ${stats.fps.toFixed(1)} fps (engine ${Math.round(stats.engineFps)}) · ${stats.frameMs.toFixed(1)} ms a frame, ${stats.scriptMs.toFixed(1)} ms script · ${Math.round(stats.changed).toLocaleString("en-US")} cells changed`
