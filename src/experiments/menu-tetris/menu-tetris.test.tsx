@@ -8,6 +8,33 @@ import { type Cell, createGame, type Game, HEIGHT, type Kind } from "./game";
 import { MenuTetris } from "./menu-tetris";
 
 const said = vi.hoisted(() => [] as string[]);
+const tones: number[] = [];
+
+class FakeAudioContext {
+  state = "running";
+  currentTime = 0;
+  destination = {};
+  async close() {}
+  createOscillator() {
+    const param = {
+      setValueAtTime: (value: number) => tones.push(value),
+      exponentialRampToValueAtTime() {},
+    };
+    return {
+      frequency: param,
+      connect: (node: unknown) => node,
+      start() {},
+      stop() {},
+    };
+  }
+  createGain() {
+    const gain = {
+      gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+      connect: (node: unknown) => node,
+    };
+    return gain;
+  }
+}
 
 vi.mock("@ui-sdk/core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@ui-sdk/core")>()),
@@ -20,6 +47,7 @@ declare global {
 
 beforeAll(() => {
   globalThis.__UI_SDK_STRICT__ = true;
+  vi.stubGlobal("AudioContext", FakeAudioContext);
   HTMLElement.prototype.showPopover = function () {};
   HTMLElement.prototype.hidePopover = function () {};
   Element.prototype.getAnimations = () => [];
@@ -43,6 +71,8 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   said.length = 0;
+  tones.length = 0;
+  localStorage.clear();
 });
 
 const BOTTOM = HEIGHT - 1;
@@ -434,5 +464,25 @@ describe("MenuTetris", () => {
     await user.click(screen.getByRole("button", { name: "Play again" }));
     await flush();
     expect(screen.queryByText("Game over")).toBeNull();
+  });
+
+  test("moves make sounds until the sound toggle or M mutes them", async () => {
+    const user = await setup(withPieces([]));
+    const toggle = screen.getByRole("button", { name: "Sound" });
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+
+    await user.keyboard("{ArrowLeft}");
+    expect(tones).not.toEqual([]);
+
+    await user.click(toggle);
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    act(() => board().focus());
+    tones.length = 0;
+    await user.keyboard("{ArrowLeft} ");
+    expect(tones).toEqual([]);
+
+    await user.keyboard("m");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(localStorage.getItem("menu-tetris:muted")).toBe("false");
   });
 });

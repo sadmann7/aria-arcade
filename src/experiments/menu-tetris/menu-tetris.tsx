@@ -28,12 +28,13 @@ import {
   WIDTH,
 } from "./game";
 import { createSession, landingOf } from "./session";
+import { createSound } from "./sound";
 import { type PieceView, PieceWidget, WIDGETS } from "./widgets";
 
 type Mode = "steer" | "clear";
 type Action = "left" | "right" | "down" | "drop" | "cw" | "ccw";
 
-const KEYS: Record<string, Action | "pause"> = {
+const KEYS: Record<string, Action | "pause" | "mute"> = {
   ArrowLeft: "left",
   ArrowRight: "right",
   ArrowDown: "down",
@@ -45,6 +46,8 @@ const KEYS: Record<string, Action | "pause"> = {
   " ": "drop",
   p: "pause",
   P: "pause",
+  m: "mute",
+  M: "mute",
 };
 
 const UPDATES: Record<Action, (game: Game) => Game> = {
@@ -126,12 +129,19 @@ interface MenuTetrisProps {
 }
 
 export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
+  const [sound] = React.useState(createSound);
   const [session] = React.useState(() =>
     createSession({
       game: initialGame ?? createGame(seed ?? 1),
       names: NAMES,
       say: (text) => announce(text),
+      play: sound.play,
     }),
+  );
+  const isMuted = React.useSyncExternalStore(
+    sound.subscribe,
+    sound.isMuted,
+    () => false,
   );
   const game = React.useSyncExternalStore(
     session.subscribe,
@@ -158,8 +168,11 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
 
   React.useEffect(() => {
     prepareAnnouncements(document);
-    return () => session.stop();
-  }, [session]);
+    return () => {
+      session.stop();
+      sound.close();
+    };
+  }, [session, sound]);
 
   React.useEffect(() => {
     if (!isRunning) return;
@@ -269,6 +282,7 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
     if (!action || event.metaKey || event.ctrlKey || event.altKey) return;
     event.preventDefault();
     if (action === "pause") togglePause();
+    else if (action === "mute") sound.setMuted(!sound.isMuted());
     else steer(action);
   }
 
@@ -498,6 +512,19 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
             >
               {pausedBy ? "Resume" : "Pause"}
             </Button>
+            <Button
+              className={buttonClass}
+              aria-pressed={!isMuted}
+              onClick={() => {
+                sound.setMuted(!isMuted);
+                if (isStarted && !isOver && !pausedBy && mode === "steer") {
+                  boardRef.current?.focus();
+                }
+              }}
+            >
+              <span aria-hidden="true">{isMuted ? "🔇" : "🔊"}</span>
+              Sound
+            </Button>
           </div>
           <div id="menu-tetris-help" className="grid gap-1.5 text-sm">
             <p className="font-medium">Keys</p>
@@ -505,7 +532,7 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
               <li>
                 Left and Right move, Down drops a row, Space drops all the way.
               </li>
-              <li>Up or X rotates right, Z rotates left, P pauses.</li>
+              <li>Up or X rotates right, Z rotates left, P pauses, M mutes.</li>
               <li>
                 Tab leaves the board for the stack. Arrow through every cell of
                 an armed row to clear it. The piece waits while you clear.
