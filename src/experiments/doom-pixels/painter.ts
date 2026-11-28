@@ -10,7 +10,7 @@ import {
   rowsFor,
 } from "./resolution";
 
-export type PaintMode = "cells" | "rows" | "direct";
+export type PaintMode = "cells" | "rows" | "direct" | "canvas";
 
 export interface FrameStats {
   fps: number;
@@ -95,7 +95,12 @@ export function createPainter({ controller, onStats }: PainterOptions) {
     if (!frame) return;
     const start = performance.now();
     const colors = new Int32Array(frame.buffer);
-    const changed = mode === "rows" ? paintRows(colors) : paintCells(colors);
+    const changed =
+      mode === "rows"
+        ? paintRows(colors)
+        : mode === "canvas"
+          ? paintCanvas(colors)
+          : paintCells(colors);
     current = colors;
     drawn = {
       start,
@@ -106,14 +111,34 @@ export function createPainter({ controller, onStats }: PainterOptions) {
     after?.port2.postMessage(null);
   }
 
+  function changedIn(colors: Int32Array, row: number) {
+    let changed = 0;
+    for (let index = row * columns; index < (row + 1) * columns; index += 1) {
+      if (colors[index] !== current[index]) changed += 1;
+    }
+    return changed;
+  }
+
+  function paintCanvas(colors: Int32Array) {
+    let changed = 0;
+    let top = -1;
+    let bottom = -1;
+    for (let row = 0; row < rowKeys.length; row += 1) {
+      const rowChanged = changedIn(colors, row);
+      if (rowChanged === 0) continue;
+      changed += rowChanged;
+      if (top < 0) top = row;
+      bottom = row;
+    }
+    controller.paintCanvas(colors, top, bottom);
+    return changed;
+  }
+
   function paintRows(colors: Int32Array) {
     const changedRows: Record<string, string> = {};
     let changed = 0;
     for (let row = 0; row < rowKeys.length; row += 1) {
-      let rowChanged = 0;
-      for (let index = row * columns; index < (row + 1) * columns; index += 1) {
-        if (colors[index] !== current[index]) rowChanged += 1;
-      }
+      const rowChanged = changedIn(colors, row);
       if (rowChanged === 0) continue;
       changed += rowChanged;
       changedRows[rowKeys[row] ?? ""] = rowGradient(
@@ -169,6 +194,7 @@ export function createPainter({ controller, onStats }: PainterOptions) {
           Object.fromEntries(rowKeys.map((key) => [key, ""])),
         );
       }
+      if (mode === "canvas") controller.clearCanvas();
       mode = next;
       // The new mode starts from nothing, so its first frame paints every pixel.
       current = new Int32Array(current.length).fill(-1);

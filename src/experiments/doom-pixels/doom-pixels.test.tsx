@@ -27,6 +27,7 @@ beforeAll(() => {
   HTMLElement.prototype.showPopover = function () {};
   HTMLElement.prototype.hidePopover = function () {};
   Element.prototype.getAnimations = () => [];
+  HTMLCanvasElement.prototype.getContext = () => null;
   Element.prototype.scrollIntoView = function () {};
   Element.prototype.checkVisibility = () => true;
   Element.prototype.getClientRects = () => [] as unknown as DOMRectList;
@@ -259,11 +260,7 @@ it.each(["Live cells", "Style writes"])(
 it("paints whole scanlines as gradients with Live rows", async () => {
   const user = userEvent.setup();
   render(<DoomPixels />);
-  expect(
-    screen
-      .getByRole("radio", { name: "Live rows" })
-      .getAttribute("aria-checked"),
-  ).toBe("true");
+  await user.click(screen.getByRole("radio", { name: "Live rows" }));
   await user.click(screen.getByRole("switch", { name: "Show grid" }));
   await screen.findByRole("switch", { name: "Show grid", checked: true });
   for (const [index, color] of [0x080808, 0x101010].entries()) {
@@ -281,6 +278,7 @@ it("paints whole scanlines as gradients with Live rows", async () => {
 it("starts a new resolution with no gradients from the old one", async () => {
   const user = userEvent.setup();
   render(<DoomPixels />);
+  await user.click(screen.getByRole("radio", { name: "Live rows" }));
   await sendFrame(0x080808, 1);
   expect(rowStyle()).toContain("gradient");
   await user.click(screen.getByRole("combobox", { name: "Resolution" }));
@@ -296,6 +294,75 @@ it("starts a new resolution with no gradients from the old one", async () => {
   for (const row of screen.getAllByRole("row")) {
     expect(row.getAttribute("style") ?? "").not.toContain("gradient");
   }
+});
+
+function stubCanvas() {
+  const puts: { top: number; rows: number; first: number[] }[] = [];
+  const clears: number[] = [];
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+    () =>
+      ({
+        createImageData: (width: number, height: number) => ({
+          data: new Uint8ClampedArray(width * height * 4),
+        }),
+        putImageData: (
+          image: { data: Uint8ClampedArray },
+          _x: number,
+          _y: number,
+          _dirtyX: number,
+          top: number,
+          _width: number,
+          rows: number,
+        ) => {
+          puts.push({ top, rows, first: [...image.data.subarray(0, 4)] });
+        },
+        clearRect: () => clears.push(1),
+      }) as unknown as CanvasRenderingContext2D,
+  );
+  return { puts, clears };
+}
+
+it("paints frames into the grid's canvas and leaves the cells clear", async () => {
+  const canvas = stubCanvas();
+  const user = userEvent.setup();
+  render(<DoomPixels />);
+  expect(
+    screen.getByRole("radio", { name: "Canvas" }).getAttribute("aria-checked"),
+  ).toBe("true");
+  await sendFrame(0x102030, 1);
+  expect(canvas.puts).toEqual([
+    { top: 0, rows: 100, first: [16, 32, 48, 255] },
+  ]);
+  expect(cellColor()).not.toBe(hexToRgb("#102030"));
+
+  await sendFrame(0x102030, 2);
+  expect(canvas.puts).toHaveLength(1);
+
+  await user.click(screen.getByRole("radio", { name: "Live cells" }));
+  expect(canvas.clears).toHaveLength(1);
+  vi.restoreAllMocks();
+});
+
+it("repaints only the rows that changed on the canvas", async () => {
+  const canvas = stubCanvas();
+  const user = userEvent.setup();
+  render(<DoomPixels />);
+  await user.click(screen.getByRole("radio", { name: "Canvas" }));
+  await sendFrame(0x080808, 1);
+  const colors = new Int32Array(16_000).fill(0x080808);
+  colors.fill(0xf8f8f8, 160 * 40, 160 * 42);
+  act(() =>
+    reply({
+      type: "frame",
+      buffer: colors.buffer,
+      columns: 160,
+      rows: 100,
+      engineFrame: 2,
+    }),
+  );
+  await vi.waitFor(() => expect(canvas.puts).toHaveLength(2));
+  expect(canvas.puts[1]).toMatchObject({ top: 40, rows: 2 });
+  vi.restoreAllMocks();
 });
 
 function hexToRgb(hex: string) {

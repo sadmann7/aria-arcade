@@ -14,6 +14,8 @@ import { hexColor } from "./resolution";
 export interface PixelGridController {
   paint: (colors: Int32Array, changed: Record<string, number>) => void;
   paintRows: (colors: Int32Array, changed: Record<string, string>) => void;
+  paintCanvas: (colors: Int32Array, top: number, bottom: number) => void;
+  clearCanvas: () => void;
   focusCell: (cell: GridCell) => boolean;
 }
 
@@ -68,6 +70,14 @@ export const pixelGrid = definePrimitive({
   api: (context) => {
     let colors: Int32Array = new Int32Array(0);
     const gradients: string[] = [];
+    let canvas: HTMLCanvasElement | null = null;
+    let canvasContext: CanvasRenderingContext2D | null = null;
+    let image: ImageData | null = null;
+    const drawing = () => {
+      if (!canvas) return null;
+      canvasContext ??= canvas.getContext("2d");
+      return canvasContext;
+    };
     const grid = createGridFocus(context, {
       key: "active",
       rows: () => context.options().rows,
@@ -91,6 +101,45 @@ export const pixelGrid = definePrimitive({
         }
         context.store.set({ changedRows: changed });
       },
+      bindCanvas: (el: HTMLCanvasElement) => {
+        const { rows, columns } = context.options();
+        el.width = columns;
+        el.height = rows;
+        canvas = el;
+        return () => {
+          if (canvas !== el) return;
+          canvas = null;
+          canvasContext = null;
+          image = null;
+        };
+      },
+      paintCanvas: (next: Int32Array, top: number, bottom: number) => {
+        colors = next;
+        const drawn = drawing();
+        if (!drawn || top < 0 || bottom < top) return;
+        const { rows, columns } = context.options();
+        image ??= drawn.createImageData(columns, rows);
+        const bytes = image.data;
+        for (
+          let index = top * columns;
+          index < (bottom + 1) * columns;
+          index += 1
+        ) {
+          const color = next[index] ?? 0;
+          const at = index * 4;
+          bytes[at] = (color >> 16) & 255;
+          bytes[at + 1] = (color >> 8) & 255;
+          bytes[at + 2] = color & 255;
+          bytes[at + 3] = 255;
+        }
+        drawn.putImageData(image, 0, 0, 0, top, columns, bottom - top + 1);
+      },
+      clearCanvas: () => {
+        const drawn = drawing();
+        if (!drawn || !canvas) return;
+        drawn.clearRect(0, 0, canvas.width, canvas.height);
+        image = null;
+      },
       focusCell: (cell: GridCell) => grid.focus(cell, { reason: "imperative" }),
     };
   },
@@ -98,6 +147,13 @@ export const pixelGrid = definePrimitive({
     root: slot({
       role: "grid",
       keys: { none: "Focus stays on a cell, whose keydown handles them." },
+    }),
+    canvas: slot({
+      selects: selects({ active: [], changed: [], changedRows: [] }),
+      attrs: () => ({ "aria-hidden": "true" }),
+      bind: (el, { api }) => {
+        if (el instanceof HTMLCanvasElement) return api.bindCanvas(el);
+      },
     }),
     row: slot<RowProps>({
       props: { id: "string", row: "number" },
