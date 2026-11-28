@@ -40,7 +40,7 @@ export function Shell({
       />
       <header className="flex items-center justify-between gap-6 px-4 pt-6 sm:px-14 sm:pt-8">
         <div className="flex items-center gap-7">
-          <p className="flex items-center gap-3.5 font-pixel text-xl leading-6 tracking-[0.08em] whitespace-nowrap uppercase max-sm:hidden">
+          <p className="flex items-center gap-3.5 font-mono text-xl leading-6 font-semibold tracking-[0.04em] whitespace-nowrap uppercase max-sm:hidden">
             <span
               aria-hidden="true"
               className="size-3.5 shrink-0 bg-primary shadow-[0_0_16px_var(--color-primary)]"
@@ -137,7 +137,7 @@ function Clock() {
     () => "",
   );
   return (
-    <time className="min-w-[77px] text-right font-readout text-2xl leading-[30px] text-accent">
+    <time className="min-w-[77px] text-right font-mono text-lg leading-[30px] font-medium text-accent tabular-nums">
       {time}
     </time>
   );
@@ -156,7 +156,7 @@ function Cover() {
       aria-hidden="true"
       className="flex h-[90px] w-[66px] shrink-0 -rotate-4 flex-col overflow-clip bg-accent shadow-[6px_8px_0_#0000008c] max-sm:hidden"
     >
-      <p className="bg-background px-[5px] py-[3px] font-pixel text-[5px] leading-[6px] tracking-[0.12em] text-accent uppercase">
+      <p className="bg-background px-[5px] py-[3px] font-mono text-[5px] leading-[6px] font-semibold tracking-[0.04em] text-accent uppercase">
         Aria Arcade
       </p>
       <div className="flex flex-1 items-center justify-center">

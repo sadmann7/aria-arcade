@@ -70,13 +70,13 @@ const NAMES = Object.fromEntries(
 ) as Record<Kind, string>;
 
 const buttonClass =
-  "inline-flex items-center justify-center border-[1.5px] border-input px-4 py-[13px] font-pixel text-sm leading-[18px] font-bold tracking-[0.06em] whitespace-nowrap text-foreground uppercase hover:border-foreground disabled:opacity-40";
+  "inline-flex items-center justify-center border-[1.5px] border-input px-4 py-[13px] font-ui text-sm leading-[18px] font-semibold whitespace-nowrap text-foreground hover:border-foreground disabled:opacity-40";
 
 const primaryClass =
-  "inline-flex flex-1 items-center justify-center bg-foreground px-3.5 py-[13px] font-pixel text-sm leading-[18px] font-bold tracking-[0.06em] whitespace-nowrap text-background uppercase shadow-[5px_5px_0_var(--color-primary)] active:translate-[5px] active:shadow-none disabled:opacity-40 disabled:shadow-none";
+  "inline-flex flex-1 items-center justify-center bg-foreground px-3.5 py-[13px] font-ui text-sm leading-[18px] font-semibold whitespace-nowrap text-background hover:bg-foreground/90 disabled:opacity-40";
 
 const startClass =
-  "inline-flex items-center justify-center bg-primary px-5 py-3 font-pixel text-sm leading-[18px] font-bold tracking-[0.06em] text-primary-foreground uppercase shadow-[5px_5px_0_var(--color-foreground)] active:translate-[5px] active:shadow-none";
+  "inline-flex items-center justify-center bg-primary px-5 py-3 font-ui text-sm leading-[18px] font-semibold text-primary-foreground hover:bg-primary/90";
 
 const hints = [
   {
@@ -367,7 +367,7 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
             <dl className="tabular-nums">
               <div className="px-4 pt-3.5 pb-2.5">
                 <dt className="sr-only">Score</dt>
-                <dd className="arcade-readout text-[72px] leading-16 text-accent">
+                <dd className="arcade-readout text-[52px] leading-14 tracking-[-0.04em] text-accent">
                   <span aria-hidden="true">
                     {String(game.score)
                       .padStart(6, "0")
@@ -379,13 +379,13 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
               <div className="arcade-panel-row border-t border-divider pt-2.5 pb-3.5">
                 <div className="arcade-stat">
                   <dt className="arcade-label">Level</dt>
-                  <dd className="arcade-readout text-4xl leading-[34px]">
+                  <dd className="arcade-readout text-[28px] leading-8 tracking-[-0.02em]">
                     {currentLevel}
                   </dd>
                 </div>
                 <div className="arcade-stat">
                   <dt className="arcade-label">Lines</dt>
-                  <dd className="arcade-readout text-4xl leading-[34px]">
+                  <dd className="arcade-readout text-[28px] leading-8 tracking-[-0.02em]">
                     {game.lines}
                   </dd>
                 </div>
@@ -504,7 +504,7 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
                 {!isStarted ? "Menu Tetris" : isOver ? "Game over" : "Paused"}
               </p>
               {isOver ? (
-                <p className="font-readout text-xl leading-5 text-muted-foreground">
+                <p className="font-mono text-sm leading-5 text-muted-foreground tabular-nums">
                   Score {game.score} · {game.lines} lines
                 </p>
               ) : null}

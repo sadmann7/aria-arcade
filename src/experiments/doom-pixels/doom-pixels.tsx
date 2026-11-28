@@ -198,7 +198,7 @@ export function DoomPixels() {
                   Grid lines up to {gridLinesUpTo}
                 </span>
               </div>
-              <SelectTrigger className="group flex items-center justify-between gap-2 border-[1.5px] border-foreground px-2.5 py-[7px] font-readout text-[22px] leading-[22px] hover:bg-white/5 data-open:bg-white/5">
+              <SelectTrigger className="group flex items-center justify-between gap-2 border-[1.5px] border-foreground px-2.5 py-[7px] font-mono text-base leading-[22px] font-medium hover:bg-white/5 data-open:bg-white/5">
                 <SelectValue />
                 <span
                   aria-hidden="true"
@@ -214,11 +214,11 @@ export function DoomPixels() {
                   key={choice}
                   value={String(choice)}
                   label={resolutionLabel(choice)}
-                  className="group flex cursor-pointer justify-between gap-4 px-2.5 py-[3px] font-readout text-xl leading-5 text-secondary-foreground select-none data-highlighted:bg-muted data-highlighted:text-foreground data-selected:bg-foreground data-selected:text-background"
+                  className="group flex cursor-pointer justify-between gap-4 px-2.5 py-[3px] font-mono text-sm leading-5 text-secondary-foreground select-none data-highlighted:bg-muted data-highlighted:text-foreground data-selected:bg-foreground data-selected:text-background"
                 >
                   <span>{resolutionLabel(choice)}</span>
                   <span
-                    className={`text-lg leading-5 group-data-selected:text-background ${choice > screenWidth ? "text-accent" : "text-muted-foreground"}`}
+                    className={`text-[13px] leading-5 group-data-selected:text-background ${choice > screenWidth ? "text-accent" : "text-muted-foreground"}`}
                   >
                     {pixelCount(choice).toLocaleString("en-US")} cells
                   </span>
@@ -312,7 +312,7 @@ export function DoomPixels() {
             />
             <Button
               onClick={togglePause}
-              className="flex items-center gap-2 bg-accent px-3 py-1.5 font-pixel text-sm leading-[18px] font-bold tracking-[0.08em] text-accent-foreground uppercase shadow-[3px_3px_0_var(--color-foreground)] active:translate-[3px] active:shadow-none"
+              className="flex items-center gap-2 bg-accent px-3 py-1.5 font-ui text-sm leading-[18px] font-semibold text-accent-foreground hover:bg-accent/90"
             >
               <svg aria-hidden="true" viewBox="0 0 10 12" className="h-3 w-2.5">
                 {isPaused ? (
@@ -417,7 +417,7 @@ function Readout({ columns, stats, buildMs }: ReadoutProps) {
         <div className="arcade-stat">
           <dt className="arcade-label">FPS</dt>
           <dd className="flex items-baseline gap-2">
-            <span className="arcade-readout text-[56px] leading-[50px] text-accent">
+            <span className="arcade-readout text-[44px] leading-12 tracking-[-0.04em] text-accent">
               {stats ? stats.fps.toFixed(1) : empty}
             </span>
             {stats ? (
@@ -459,7 +459,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="arcade-stat">
       <dt className="arcade-label">{label}</dt>
-      <dd className="arcade-readout text-[28px] leading-7">{value}</dd>
+      <dd className="arcade-readout text-[22px] leading-7 tracking-[-0.02em]">
+        {value}
+      </dd>
     </div>
   );
 }

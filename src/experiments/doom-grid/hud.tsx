@@ -56,12 +56,12 @@ export function Hud({ snapshot, isFailed, onWeaponChange }: HudProps) {
           <Stat
             label="Health"
             value={`${player.health}%`}
-            className={`text-[56px] leading-[52px] ${player.health <= 25 ? "text-destructive" : "text-accent"}`}
+            className={`text-[44px] leading-12 tracking-[-0.04em] ${player.health <= 25 ? "text-destructive" : "text-accent"}`}
           />
           <Stat
             label="Armor"
             value={`${player.armor}%`}
-            className="text-[56px] leading-[52px]"
+            className="text-[44px] leading-12 tracking-[-0.04em]"
           />
         </dl>
         <dl className="arcade-panel-row pt-2 pb-4">
@@ -69,12 +69,12 @@ export function Hud({ snapshot, isFailed, onWeaponChange }: HudProps) {
             label="Ammo"
             value={ammo === null ? "—" : String(player.ammo[ammo])}
             unit={ammo === null ? undefined : ammoNames[ammo]}
-            className="text-[32px] leading-8"
+            className="text-[26px] leading-8 tracking-[-0.02em]"
           />
           <Stat
             label="Kills"
             value={`${snapshot.kills}/${snapshot.totalKills}`}
-            className="text-[32px] leading-8"
+            className="text-[26px] leading-8 tracking-[-0.02em]"
           />
         </dl>
         <dl className="arcade-panel-row items-center justify-between py-3">
@@ -114,11 +114,11 @@ export function Hud({ snapshot, isFailed, onWeaponChange }: HudProps) {
               <Toggle
                 key={weapon.index}
                 value={String(weapon.index)}
-                className="group flex items-center gap-2 border-[1.5px] border-input px-2.5 py-[7px] text-sm leading-[18px] text-secondary-foreground hover:border-foreground data-pressed:border-foreground data-pressed:bg-foreground data-pressed:font-semibold data-pressed:text-background data-pressed:shadow-[3px_3px_0_var(--color-accent)]"
+                className="group flex items-center gap-2 border-[1.5px] border-input px-2.5 py-[7px] text-sm leading-[18px] text-secondary-foreground hover:border-foreground data-pressed:border-foreground data-pressed:bg-foreground data-pressed:font-semibold data-pressed:text-background"
               >
                 <span
                   aria-hidden="true"
-                  className="font-readout text-lg leading-4 text-muted-foreground group-data-pressed:text-background"
+                  className="font-mono text-[13px] leading-4 font-medium text-muted-foreground group-data-pressed:text-background"
                 >
                   {weapon.key}
                 </span>

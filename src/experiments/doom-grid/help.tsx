@@ -59,7 +59,7 @@ const legend = [
 export function KeysPopover() {
   return (
     <Popover>
-      <PopoverTrigger className="arcade-keycap hover:border-foreground data-open:border-foreground data-open:bg-foreground data-open:text-background">
+      <PopoverTrigger className="arcade-keycap font-ui text-[13px] font-semibold tracking-normal normal-case hover:border-foreground data-open:border-foreground data-open:bg-foreground data-open:text-background">
         All keys <span aria-hidden="true">▴</span>
       </PopoverTrigger>
       <PopoverContent

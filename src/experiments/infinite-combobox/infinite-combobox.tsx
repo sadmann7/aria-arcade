@@ -285,9 +285,9 @@ const Layer = React.memo(function Layer({
         style={layerStyle(depth)}
       >
         <div className="flex items-center justify-between gap-2 pl-0.5">
-          <ComboboxLabel className="font-pixel text-xs leading-4 tracking-[0.12em] text-muted-foreground uppercase group-data-top:text-foreground">
+          <ComboboxLabel className="font-mono text-xs leading-4 font-medium tracking-[0.06em] text-muted-foreground uppercase group-data-top:text-foreground">
             Layer{" "}
-            <span className="font-readout text-xl tracking-normal text-secondary-foreground group-data-top:text-accent">
+            <span className="text-sm font-semibold tracking-normal text-secondary-foreground group-data-top:text-accent">
               {depth}
             </span>{" "}
             of {BOTTOM}
@@ -341,10 +341,10 @@ function Hud({ depth, record, onBackOut }: HudProps) {
         </p>
         <p className="flex items-baseline gap-2.5 px-4 pt-3.5 pb-1">
           <span className="sr-only">Depth </span>
-          <span className="arcade-readout text-8xl leading-[84px] text-accent">
+          <span className="arcade-readout text-7xl leading-[72px] tracking-[-0.05em] text-accent">
             {depth}
           </span>
-          <span className="arcade-readout text-[32px] leading-8 text-muted-foreground">
+          <span className="arcade-readout text-[26px] leading-8 tracking-[-0.02em] text-muted-foreground">
             / {BOTTOM}
           </span>
         </p>
@@ -358,19 +358,21 @@ function Hud({ depth, record, onBackOut }: HudProps) {
               style={{ width: `${(depth / BOTTOM) * 100}%` }}
             />
           </div>
-          <div className="flex justify-between font-pixel text-xs leading-4 tracking-[0.12em] text-faint-foreground uppercase">
+          <div className="flex justify-between font-mono text-xs leading-4 font-medium tracking-[0.06em] text-faint-foreground uppercase">
             <span>Surface</span>
             <span>The bottom</span>
           </div>
         </div>
         {isBottom ? (
-          <p className="border-t border-divider px-4 py-3 font-pixel text-xs leading-4 tracking-[0.12em] text-primary uppercase motion-safe:animate-pulse">
+          <p className="border-t border-divider px-4 py-3 font-mono text-xs leading-4 font-medium tracking-[0.06em] text-primary uppercase motion-safe:animate-pulse">
             You hit the bottom!
           </p>
         ) : null}
         <dl className="flex items-center justify-between border-t border-divider px-4 py-3">
           <dt className="arcade-label">Record</dt>
-          <dd className="arcade-readout text-[28px] leading-6">{record}</dd>
+          <dd className="arcade-readout text-[22px] leading-6 tracking-[-0.02em]">
+            {record}
+          </dd>
         </dl>
       </section>
       <div className="h-[52px] shrink-0 [anchor-name:--back-out]">
@@ -395,7 +397,7 @@ function Hud({ depth, record, onBackOut }: HudProps) {
 }
 
 const backOutClass =
-  "flex h-[52px] w-full items-center justify-between border-[1.5px] border-foreground bg-background px-[18px] text-foreground shadow-[5px_5px_0_var(--color-foreground)]";
+  "flex h-[52px] w-full items-center justify-between border-[1.5px] border-foreground bg-background px-[18px] text-foreground";
 
 function BackOutLabel() {
   return (
@@ -404,7 +406,7 @@ function BackOutLabel() {
         <span aria-hidden="true" className="text-lg leading-5">
           ↑
         </span>
-        <span className="font-pixel text-lg leading-[22px] font-bold tracking-[0.08em] uppercase">
+        <span className="font-ui text-base leading-[22px] font-semibold">
           Back out
         </span>
       </span>
@@ -438,7 +440,7 @@ function BackOut({ depth, onBackOut }: BackOutProps) {
       <Button
         aria-label={`Back out of layer ${depth}`}
         onClick={onBackOut}
-        className={`pointer-events-auto ${backOutClass} hover:bg-card active:translate-[5px] active:shadow-none`}
+        className={`pointer-events-auto ${backOutClass} hover:bg-card`}
       >
         <BackOutLabel />
       </Button>

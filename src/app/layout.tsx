@@ -4,9 +4,9 @@ import type { Metadata, Viewport } from "next";
 import {
   Archivo,
   Archivo_Black,
+  Geist,
+  Geist_Mono,
   Inter,
-  Silkscreen,
-  VT323,
 } from "next/font/google";
 
 const archivo = Archivo({
@@ -21,16 +21,14 @@ const archivoBlack = Archivo_Black({
   variable: "--font-archivo-black",
 });
 
-const silkscreen = Silkscreen({
+const geist = Geist({
   subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-silkscreen",
+  variable: "--font-geist",
 });
 
-const vt323 = VT323({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-vt323",
+  variable: "--font-geist-mono",
 });
 
 const inter = Inter({
@@ -38,7 +36,7 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const fontVariables = [archivo, archivoBlack, silkscreen, vt323, inter]
+const fontVariables = [archivo, archivoBlack, geist, geistMono, inter]
   .map((font) => font.variable)
   .join(" ");
 
