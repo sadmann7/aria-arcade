@@ -10,10 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@ui-sdk/react/select";
-import Link from "next/link";
 import * as React from "react";
 
-import { Controls } from "./controls";
+import { Controls, shownControls } from "./controls";
 import { doomKey, pauseCode } from "./keys";
 import { createPainter, type FrameStats } from "./painter";
 import { createPixelGridController, pixelKey, rowKey } from "./pixel-grid";
@@ -31,8 +30,10 @@ import {
   pixelCount,
   resolutionLabel,
   rowsFor,
+  screenWidth,
 } from "./resolution";
 import { SettingSwitch } from "./setting-switch";
+import { Shell } from "./shell";
 import { type DoomFrame, useDoom } from "./use-doom";
 
 export function DoomPixels() {
@@ -173,93 +174,77 @@ export function DoomPixels() {
           : "Click the screen or tab to it to play.";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 px-4 py-3 lg:h-dvh">
-      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          Back to the gallery
-        </Link>
-        <h1 className="text-lg font-semibold tracking-tight">Doom pixels</h1>
-        <p className="text-xs text-pretty text-muted-foreground">
-          Freedoom, drawn into one UI SDK grid cell per pixel.
-        </p>
-      </header>
-      <section
-        aria-label="Settings"
-        className="flex flex-wrap items-end gap-x-5 gap-y-3"
-      >
-        <Select
-          value={String(columns)}
-          onValueChange={(value) => {
-            if (typeof value === "string") changeColumns(Number(value));
-          }}
-        >
-          <div className="grid gap-1">
-            <SelectLabel className="text-xs text-muted-foreground">
-              Resolution
-            </SelectLabel>
-            <SelectTrigger className="flex h-8 min-w-44 items-center justify-between gap-2 rounded-md border border-border bg-card px-2.5 text-sm tabular-nums hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring data-open:bg-muted">
-              <SelectValue />
-              <span aria-hidden="true" className="text-muted-foreground">
-                ▾
-              </span>
-            </SelectTrigger>
-          </div>
-          <SelectContent className="m-0 grid min-w-(--anchor-width) gap-0.5 rounded-lg border border-border bg-card p-1 text-sm text-foreground shadow-xl shadow-black/50">
-            {columnChoices.map((choice) => (
-              <SelectItem
-                key={choice}
-                value={String(choice)}
-                label={resolutionLabel(choice)}
-                className="flex cursor-pointer justify-between gap-4 rounded-md px-2.5 py-1.5 tabular-nums select-none data-highlighted:bg-muted data-selected:font-medium data-selected:text-primary"
-              >
-                <span>{resolutionLabel(choice)}</span>
-                <span className="text-xs text-muted-foreground">
-                  {pixelCount(choice).toLocaleString("en-US")} cells
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex h-8 flex-wrap items-center gap-x-5 gap-y-2">
-          <SettingSwitch
-            label="Show grid"
-            isChecked={showsGrid}
-            isDisabled={!canShowGrid}
-            description={
-              canShowGrid
-                ? undefined
-                : `Up to ${resolutionLabel(gridLinesUpTo)}`
-            }
-            onCheckedChange={setIsGridShown}
-          />
-          <SettingSwitch
-            label="Sound"
-            isChecked={isSoundOn && isAudioAvailable}
-            isDisabled={!isAudioAvailable}
-            description={
-              isAudioAvailable ? undefined : "Needs HTTPS or localhost"
-            }
-            onCheckedChange={(isChecked) => {
-              setIsSoundOn(isChecked);
-              send({ type: "sound", isMuted: !isChecked });
+    <Shell
+      tape="02"
+      tags={["Freedoom phase 2", "Keyboard"]}
+      title="Doom Pixels"
+      kicker="One UI SDK grid cell per pixel"
+      hints={shownControls}
+      footerEnd={<Controls />}
+      stageClassName="@container items-center justify-center p-4 [--screen:100cqw] lg:[--screen:max(320px,min(calc(100cqw-70px),calc((100dvh-380px)*1.6)))]"
+      panel={
+        <>
+          <Readout columns={columns} stats={stats} buildMs={buildMs} />
+          <Select
+            value={String(columns)}
+            onValueChange={(value) => {
+              if (typeof value === "string") changeColumns(Number(value));
             }}
-          />
-          <Button
-            onClick={togglePause}
-            className="h-8 rounded-md border border-border px-3 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
           >
-            {isPaused ? "Play" : "Pause"}
-          </Button>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-3">
+                <SelectLabel className="arcade-label">Resolution</SelectLabel>
+                <span aria-hidden="true" className="arcade-label">
+                  Grid lines up to {gridLinesUpTo}
+                </span>
+              </div>
+              <SelectTrigger className="group flex items-center justify-between gap-2 border-[1.5px] border-foreground px-2.5 py-[7px] font-readout text-[22px] leading-[22px] hover:bg-white/5 data-open:bg-white/5">
+                <SelectValue />
+                <span
+                  aria-hidden="true"
+                  className="font-sans text-xs leading-4 group-data-open:rotate-180"
+                >
+                  ▾
+                </span>
+              </SelectTrigger>
+            </div>
+            <SelectContent className="arcade-panel m-0 min-w-(--anchor-width) p-1 text-foreground">
+              {columnChoices.map((choice) => (
+                <SelectItem
+                  key={choice}
+                  value={String(choice)}
+                  label={resolutionLabel(choice)}
+                  className="group flex cursor-pointer justify-between gap-4 px-2.5 py-[3px] font-readout text-xl leading-5 text-secondary-foreground select-none data-highlighted:bg-muted data-highlighted:text-foreground data-selected:bg-foreground data-selected:text-background"
+                >
+                  <span>{resolutionLabel(choice)}</span>
+                  <span
+                    className={`text-lg leading-5 group-data-selected:text-background ${choice > screenWidth ? "text-accent" : "text-muted-foreground"}`}
+                  >
+                    {pixelCount(choice).toLocaleString("en-US")} cells
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      }
+    >
+      <div className="flex w-(--screen) max-w-full flex-col gap-2.5">
+        <div aria-hidden="true" className="flex justify-between gap-3">
+          <span className="arcade-label text-foreground">
+            Doom screen · {resolutionLabel(columns)}
+          </span>
+          {isPaused ? (
+            <span className="arcade-label flex items-center gap-2 text-accent">
+              <span className="size-2 bg-accent" />
+              Paused
+            </span>
+          ) : null}
         </div>
-      </section>
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
         <div
           ref={stageRef}
           data-paused={isPaused ? "" : undefined}
-          className="group relative aspect-8/5 w-full max-w-[calc((100dvh-12rem)*1.6)] min-w-0 overflow-hidden rounded-md bg-black ring-1 ring-border focus-within:ring-2 focus-within:ring-ring"
+          className="group relative my-1 aspect-8/5 w-full min-w-0 overflow-hidden bg-black outline-[1.5px] outline-offset-[3px] outline-foreground outline-solid focus-within:outline-primary"
         >
           {error ? (
             <div
@@ -287,19 +272,64 @@ export function DoomPixels() {
                   "--cell-height": `${100 / rows}%`,
                 } as React.CSSProperties
               }
-              className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--color-neutral-800)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-neutral-800)_1px,transparent_1px)] bg-size-[var(--cell-width)_var(--cell-height)]"
+              className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--color-background)_60%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_srgb,var(--color-background)_60%,transparent)_1px,transparent_1px)] bg-size-[var(--cell-width)_var(--cell-height)]"
             />
           ) : null}
         </div>
-        <p aria-live="polite" className="min-h-5 text-sm text-muted-foreground">
-          {status}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 pt-1.5">
+          <p
+            aria-live="polite"
+            className="min-h-5 min-w-0 flex-1 text-[15px] leading-5 text-secondary-foreground"
+          >
+            {status}
+          </p>
+          <section
+            aria-label="Settings"
+            className="flex flex-wrap items-center gap-x-5 gap-y-3"
+          >
+            <SettingSwitch
+              label="Show grid"
+              isChecked={showsGrid}
+              isDisabled={!canShowGrid}
+              description={
+                canShowGrid
+                  ? undefined
+                  : `Up to ${resolutionLabel(gridLinesUpTo)}`
+              }
+              onCheckedChange={setIsGridShown}
+            />
+            <SettingSwitch
+              label="Sound"
+              isChecked={isSoundOn && isAudioAvailable}
+              isDisabled={!isAudioAvailable}
+              description={
+                isAudioAvailable ? undefined : "Needs HTTPS or localhost"
+              }
+              onCheckedChange={(isChecked) => {
+                setIsSoundOn(isChecked);
+                send({ type: "sound", isMuted: !isChecked });
+              }}
+            />
+            <Button
+              onClick={togglePause}
+              className="flex items-center gap-2 bg-accent px-3 py-1.5 font-pixel text-sm leading-[18px] font-bold tracking-[0.08em] text-accent-foreground uppercase shadow-[3px_3px_0_var(--color-foreground)] active:translate-[3px] active:shadow-none"
+            >
+              <svg aria-hidden="true" viewBox="0 0 10 12" className="h-3 w-2.5">
+                {isPaused ? (
+                  <polygon points="0,0 10,6 0,12" fill="currentColor" />
+                ) : (
+                  <path
+                    d="M0 0h3.5v12H0zM6.5 0H10v12H6.5z"
+                    fill="currentColor"
+                  />
+                )}
+              </svg>
+              {isPaused ? "Play" : "Pause"}
+            </Button>
+          </section>
+        </div>
       </div>
-      <footer className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 text-xs text-muted-foreground">
-        <Controls />
-        <Readout columns={columns} stats={stats} buildMs={buildMs} />
-      </footer>
-    </main>
+    </Shell>
   );
 }
 
@@ -357,7 +387,7 @@ const PixelGrid = React.memo(function PixelGrid({
               id={pixelKey(row, col)}
               row={row}
               col={col}
-              className="outline-none group-data-paused:focus-visible:relative group-data-paused:focus-visible:z-10 group-data-paused:focus-visible:outline-2 group-data-paused:focus-visible:outline-ring group-data-paused:focus-visible:outline-solid"
+              className="outline-none group-data-paused:focus-visible:relative group-data-paused:focus-visible:z-10 group-data-paused:focus-visible:shadow-[0_0_12px_var(--color-primary)] group-data-paused:focus-visible:outline-[2.5px] group-data-paused:focus-visible:outline-offset-1 group-data-paused:focus-visible:outline-primary group-data-paused:focus-visible:outline-solid"
             />
           ))}
         </PixelGridRow>
@@ -374,13 +404,62 @@ interface ReadoutProps {
 
 function Readout({ columns, stats, buildMs }: ReadoutProps) {
   const total = pixelCount(columns);
+  const empty = "—";
   return (
-    <p className="tabular-nums">
-      {total.toLocaleString("en-US")} cells
-      {buildMs === null ? "" : ` · built in ${Math.round(buildMs)} ms`}
-      {stats
-        ? ` · ${stats.fps.toFixed(1)} fps (engine ${Math.round(stats.engineFps)}) · ${stats.frameMs.toFixed(1)} ms a frame, ${stats.scriptMs.toFixed(1)} ms script · ${Math.round(stats.changed).toLocaleString("en-US")} cells changed`
-        : " · measuring…"}
-    </p>
+    <section aria-label="Cost" className="arcade-panel">
+      <p
+        aria-hidden="true"
+        className="arcade-panel-head arcade-label text-foreground"
+      >
+        Cost
+      </p>
+      <dl className="arcade-panel-row pt-3.5 pb-2.5">
+        <div className="arcade-stat">
+          <dt className="arcade-label">FPS</dt>
+          <dd className="flex items-baseline gap-2">
+            <span className="arcade-readout text-[56px] leading-[50px] text-accent">
+              {stats ? stats.fps.toFixed(1) : empty}
+            </span>
+            {stats ? (
+              <span className="text-[13px] leading-4 text-muted-foreground">
+                engine {Math.round(stats.engineFps)}
+              </span>
+            ) : null}
+          </dd>
+        </div>
+      </dl>
+      <dl className="arcade-panel-row pt-2.5 pb-3.5">
+        <Stat label="Cells" value={total.toLocaleString("en-US")} />
+        <Stat
+          label="Changed"
+          value={
+            stats ? Math.round(stats.changed).toLocaleString("en-US") : empty
+          }
+        />
+      </dl>
+      <dl className="arcade-panel-row pt-2.5 pb-3.5">
+        <Stat
+          label="Frame"
+          value={stats ? `${stats.frameMs.toFixed(1)} ms` : empty}
+        />
+        <Stat
+          label="Script"
+          value={stats ? `${stats.scriptMs.toFixed(1)} ms` : empty}
+        />
+        <Stat
+          label="Built"
+          value={buildMs === null ? empty : `${Math.round(buildMs)} ms`}
+        />
+      </dl>
+    </section>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="arcade-stat">
+      <dt className="arcade-label">{label}</dt>
+      <dd className="arcade-readout text-[28px] leading-7">{value}</dd>
+    </div>
   );
 }
