@@ -18,10 +18,10 @@ import {
   ComboboxTrigger,
   createComboboxController,
 } from "@ui-sdk/react/combobox";
-import Link from "next/link";
 import * as React from "react";
 
 import { BOTTOM, type Door, getDoors } from "./doors";
+import { Shell } from "./shell";
 
 interface Step {
   door: Door;
@@ -39,17 +39,30 @@ type OnChoose = (
 ) => void;
 
 const contentClass =
-  "grid w-[min(16rem,calc(100vw-1rem))] gap-2 rounded-xl border border-t-4 border-border border-t-(--layer-color) bg-card p-2 text-sm text-foreground shadow-xl shadow-black/50 transition-[opacity,scale] duration-150 origin-(--transform-origin) rotate-(--layer-tilt) data-bottom:ring-2 data-bottom:ring-primary data-starting-style:scale-90 data-starting-style:opacity-0 motion-reduce:transition-none";
+  "group grid w-[min(16rem,calc(100vw-1rem))] gap-2 border border-t-4 border-border border-t-(--layer-color) bg-card p-2.5 text-sm leading-[18px] text-foreground shadow-[8px_8px_0_#000000b3] transition-[opacity,scale] duration-150 origin-(--transform-origin) rotate-(--layer-tilt) data-top:border-t-primary data-top:shadow-[8px_8px_0_#000000b3,0_0_40px_color-mix(in_srgb,var(--color-primary)_25%,transparent)] data-bottom:ring-2 data-bottom:ring-primary data-starting-style:scale-90 data-starting-style:opacity-0 motion-reduce:transition-none";
 
 const itemClass =
-  "flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 select-none data-highlighted:bg-muted data-selected:text-primary data-selected:font-medium";
+  "flex cursor-pointer items-center justify-between gap-3 px-2.5 py-[7px] text-secondary-foreground select-none max-sm:min-h-10 data-highlighted:bg-white/8 data-highlighted:text-foreground data-selected:bg-white/8 data-selected:font-semibold data-selected:text-foreground group-data-top:data-highlighted:bg-primary group-data-top:data-highlighted:font-semibold group-data-top:data-highlighted:text-primary-foreground";
 
 const inputClass =
-  "h-10 w-full min-w-0 rounded-lg border border-border bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring sm:text-sm";
+  "h-9 w-full min-w-0 border-[1.5px] border-input bg-background px-2.5 text-base text-foreground outline-none placeholder:text-faint-foreground focus-visible:border-primary sm:text-sm";
+
+const layerColors = [
+  "var(--color-muted-foreground)",
+  "var(--color-secondary-foreground)",
+  "var(--color-accent)",
+];
+
+const hints = [
+  { key: "Up and down arrows", cap: "↑ ↓", hint: "Highlight a door" },
+  { key: "Enter", cap: "Enter", hint: "Go through" },
+  { key: "Type", cap: "Type", hint: "Search doors" },
+  { key: "Escape", cap: "Esc", hint: "Climb up one layer" },
+];
 
 function layerStyle(depth: number) {
   return {
-    "--layer-color": `oklch(0.72 0.17 ${(depth * 29) % 360})`,
+    "--layer-color": layerColors[depth % layerColors.length],
     "--layer-tilt": `${depth === 1 ? 0 : (((depth * 37) % 7) - 3) * 0.6}deg`,
   } as React.CSSProperties;
 }
@@ -83,7 +96,10 @@ function DoorList({ depth, doors, elements }: DoorListProps) {
         >
           {door.label}
           {door.quip === null && depth < BOTTOM ? (
-            <span aria-hidden="true" className="text-muted-foreground">
+            <span
+              aria-hidden="true"
+              className="text-muted-foreground group-data-top:in-data-highlighted:text-primary-foreground"
+            >
               ↘
             </span>
           ) : null}
@@ -176,14 +192,17 @@ const Surface = React.memo(function Surface({
       presentation="popover"
     >
       <div className="grid gap-2">
-        <ComboboxLabel className="text-sm font-medium">
+        <ComboboxLabel className="arcade-label">
           Layer 1 of {BOTTOM}
         </ComboboxLabel>
         <div className="flex gap-2">
-          <ComboboxInput placeholder="Pick a door…" className={inputClass} />
+          <ComboboxInput
+            placeholder="Pick a door…"
+            className="h-10 w-full min-w-0 border-[1.5px] border-input bg-background px-3 text-base leading-5 text-foreground outline-none placeholder:text-faint-foreground focus-visible:border-primary sm:text-[15px]"
+          />
           <ComboboxTrigger
             aria-label="Show doors"
-            className="grid size-10 shrink-0 place-items-center rounded-lg border border-border bg-muted text-foreground focus-visible:outline-2 focus-visible:outline-ring data-open:text-primary"
+            className="grid size-10 shrink-0 place-items-center border-[1.5px] border-input bg-card text-xs text-foreground hover:border-foreground data-open:border-primary data-open:text-primary"
           >
             <span aria-hidden="true">▾</span>
           </ComboboxTrigger>
@@ -194,6 +213,7 @@ const Surface = React.memo(function Surface({
         align="start"
         sideOffset={6}
         collisionPadding={8}
+        data-top={isTop ? "" : undefined}
         className={contentClass}
         style={layerStyle(1)}
       >
@@ -202,7 +222,7 @@ const Surface = React.memo(function Surface({
         </ComboboxEmpty>
         <DoorList depth={1} doors={doors} elements={layer.elements} />
         {layer.quip ? (
-          <p className="px-3 pb-1 text-muted-foreground">{layer.quip}</p>
+          <p className="px-2.5 pb-1 text-muted-foreground">{layer.quip}</p>
         ) : null}
       </ComboboxContent>
     </Combobox>
@@ -259,18 +279,23 @@ const Layer = React.memo(function Layer({
         sideOffset={4}
         alignOffset={-8}
         collisionPadding={8}
+        data-top={isTop ? "" : undefined}
         data-bottom={depth === BOTTOM ? "" : undefined}
         className={contentClass}
         style={layerStyle(depth)}
       >
-        <div className="flex items-center justify-between gap-2 pl-1">
-          <ComboboxLabel className="font-medium tabular-nums">
-            Layer {depth} of {BOTTOM}
+        <div className="flex items-center justify-between gap-2 pl-0.5">
+          <ComboboxLabel className="font-pixel text-xs leading-4 tracking-[0.12em] text-muted-foreground uppercase group-data-top:text-foreground">
+            Layer{" "}
+            <span className="font-readout text-xl tracking-normal text-secondary-foreground group-data-top:text-accent">
+              {depth}
+            </span>{" "}
+            of {BOTTOM}
           </ComboboxLabel>
           <Button
             aria-label={`Climb up to layer ${depth - 1}`}
             onClick={(event) => climb(!isTouch(event.nativeEvent))}
-            className="grid size-10 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            className="relative grid size-7 shrink-0 place-items-center border-[1.5px] border-input text-[13px] leading-4 text-foreground before:absolute before:-inset-1.5 hover:border-foreground"
           >
             <span aria-hidden="true">↑</span>
           </Button>
@@ -285,7 +310,7 @@ const Layer = React.memo(function Layer({
         </ComboboxEmpty>
         <DoorList depth={depth} doors={doors} elements={layer.elements} />
         {layer.quip ? (
-          <p className="px-3 pb-1 text-muted-foreground">{layer.quip}</p>
+          <p className="px-2.5 pb-1 text-muted-foreground">{layer.quip}</p>
         ) : null}
       </ComboboxContent>
     </Combobox>
@@ -299,41 +324,124 @@ interface HudProps {
 }
 
 function Hud({ depth, record, onBackOut }: HudProps) {
-  const ref = React.useRef<HTMLDivElement>(null);
   const isBottom = depth === BOTTOM;
 
+  return (
+    <>
+      <section
+        aria-label="Depth"
+        data-bottom={isBottom ? "" : undefined}
+        className="arcade-panel data-bottom:border-primary"
+      >
+        <p
+          aria-hidden="true"
+          className="arcade-panel-head arcade-label text-accent"
+        >
+          Depth
+        </p>
+        <p className="flex items-baseline gap-2.5 px-4 pt-3.5 pb-1">
+          <span className="sr-only">Depth </span>
+          <span className="arcade-readout text-8xl leading-[84px] text-accent">
+            {depth}
+          </span>
+          <span className="arcade-readout text-[32px] leading-8 text-muted-foreground">
+            / {BOTTOM}
+          </span>
+        </p>
+        <div
+          aria-hidden="true"
+          className="flex flex-col gap-1.5 px-4 pt-2 pb-4"
+        >
+          <div className="flex h-2.5 border border-border bg-background">
+            <div
+              className="bg-accent"
+              style={{ width: `${(depth / BOTTOM) * 100}%` }}
+            />
+          </div>
+          <div className="flex justify-between font-pixel text-xs leading-4 tracking-[0.12em] text-faint-foreground uppercase">
+            <span>Surface</span>
+            <span>The bottom</span>
+          </div>
+        </div>
+        {isBottom ? (
+          <p className="border-t border-divider px-4 py-3 font-pixel text-xs leading-4 tracking-[0.12em] text-primary uppercase motion-safe:animate-pulse">
+            You hit the bottom!
+          </p>
+        ) : null}
+        <dl className="flex items-center justify-between border-t border-divider px-4 py-3">
+          <dt className="arcade-label">Record</dt>
+          <dd className="arcade-readout text-[28px] leading-6">{record}</dd>
+        </dl>
+      </section>
+      <div className="h-[52px] shrink-0 [anchor-name:--back-out]">
+        {depth > 1 ? (
+          <BackOut key={depth} depth={depth} onBackOut={onBackOut} />
+        ) : (
+          <div aria-hidden="true" className={`${backOutClass} opacity-40`}>
+            <BackOutLabel />
+          </div>
+        )}
+      </div>
+      <section className="flex flex-col gap-2.5 pt-1.5">
+        <h2 className="arcade-label">How it works</h2>
+        <p className="text-base leading-6 text-secondary-foreground">
+          Every door opens another combobox. Doors marked ↘ go deeper; the rest
+          are dead ends with something to say. The bottom is {BOTTOM} layers
+          down.
+        </p>
+      </section>
+    </>
+  );
+}
+
+const backOutClass =
+  "flex h-[52px] w-full items-center justify-between border-[1.5px] border-foreground bg-background px-[18px] text-foreground shadow-[5px_5px_0_var(--color-foreground)]";
+
+function BackOutLabel() {
+  return (
+    <>
+      <span className="flex items-center gap-3">
+        <span aria-hidden="true" className="text-lg leading-5">
+          ↑
+        </span>
+        <span className="font-pixel text-lg leading-[22px] font-bold tracking-[0.08em] uppercase">
+          Back out
+        </span>
+      </span>
+      <kbd aria-hidden="true" className="arcade-keycap px-1.5 tracking-normal">
+        Esc
+      </kbd>
+    </>
+  );
+}
+
+interface BackOutProps {
+  depth: number;
+  onBackOut: (event: React.MouseEvent) => void;
+}
+
+function BackOut({ depth, onBackOut }: BackOutProps) {
+  const ref = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
-    const hud = ref.current;
-    hud?.showPopover();
-    return () => hud?.hidePopover();
+    const popover = ref.current;
+    popover?.showPopover();
+    return () => popover?.hidePopover();
   }, []);
 
   return (
     <div
       ref={ref}
       popover="manual"
-      data-bottom={isBottom ? "" : undefined}
-      className="pointer-events-none fixed inset-auto top-3 right-3 m-0 grid gap-0.5 rounded-xl border border-border bg-card/90 px-3 py-2 text-right text-xs text-muted-foreground tabular-nums shadow-lg data-bottom:border-primary data-bottom:text-primary"
+      className="pointer-events-none fixed inset-auto top-3 right-3 m-0 w-[min(360px,calc(100vw-1.5rem))] overflow-visible bg-transparent p-0 supports-[anchor-name:--a]:top-[anchor(top)] supports-[anchor-name:--a]:right-auto supports-[anchor-name:--a]:left-[anchor(left)] supports-[anchor-name:--a]:w-[anchor-size(width)] supports-[anchor-name:--a]:[position-anchor:--back-out]"
     >
-      <span>
-        Depth <strong className="text-base text-foreground">{depth}</strong> /{" "}
-        {BOTTOM}
-      </span>
-      <span>Record {record}</span>
-      {isBottom ? (
-        <span className="animate-bounce font-medium motion-reduce:animate-none">
-          You hit the bottom!
-        </span>
-      ) : null}
-      {depth > 1 ? (
-        <Button
-          aria-label={`Back out of layer ${depth}`}
-          onClick={onBackOut}
-          className="pointer-events-auto mt-1 h-10 rounded-lg border border-border bg-muted px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          ↑ Back out
-        </Button>
-      ) : null}
+      <Button
+        aria-label={`Back out of layer ${depth}`}
+        onClick={onBackOut}
+        className={`pointer-events-auto ${backOutClass} hover:bg-card active:translate-[5px] active:shadow-none`}
+      >
+        <BackOutLabel />
+      </Button>
     </div>
   );
 }
@@ -384,23 +492,16 @@ export function InfiniteCombobox() {
   }
 
   return (
-    <main className="mx-auto grid min-h-dvh w-full max-w-3xl content-start gap-8 px-4 py-12 sm:py-16">
-      <header className="grid gap-3">
-        <Link
-          href="/"
-          className="w-fit text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          ← Aria Arcade
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Infinite combobox
-        </h1>
-        <p className="max-w-[60ch] text-pretty text-muted-foreground">
-          Every door opens another combobox. The bottom is {BOTTOM} layers down.
-          Escape climbs back up one layer at a time, and so does Back out.
-        </p>
-      </header>
-      <div className="max-w-xs">
+    <Shell
+      tape="03"
+      tags={["Keyboard", "Screen reader"]}
+      title="Infinite Combobox"
+      kicker={`${BOTTOM} layers down · escape climbs up one at a time`}
+      hints={hints}
+      stageClassName="relative min-h-[28rem] overflow-clip"
+      panel={<Hud depth={depth} record={record} onBackOut={onBackOut} />}
+    >
+      <div className="w-[300px] max-w-full p-7">
         <Surface
           isOpen={isSurfaceOpen}
           isTop={chain.length === 0}
@@ -420,12 +521,11 @@ export function InfiniteCombobox() {
           onClimb={onClimb}
         />
       ))}
-      <Hud key={depth} depth={depth} record={record} onBackOut={onBackOut} />
       <p role="status" className="sr-only">
         {isBottom
           ? `Layer ${BOTTOM}. You hit the bottom. Now climb back up.`
           : ""}
       </p>
-    </main>
+    </Shell>
   );
 }
