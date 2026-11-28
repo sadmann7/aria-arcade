@@ -1,5 +1,5 @@
 name: Engine
-description: Builds Woof and fetches Freedoom into public/doom-grid/engine
+description: Builds Woof and fetches Freedoom into each Doom experiment's public engine folder
 runs:
   using: composite
   steps:
@@ -8,8 +8,10 @@ runs:
       id: built
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: public/doom-grid/engine
-        key: engine-output-${{ runner.os }}-${{ hashFiles('src/experiments/doom-grid/engine/**', '.github/engine/action.yml') }}
+        path: |
+          public/doom-grid/engine
+          public/doom-pixels/engine
+        key: engine-output-${{ runner.os }}-${{ hashFiles('src/experiments/doom-grid/engine/**', 'src/experiments/doom-pixels/engine/**', '.github/engine/action.yml') }}
 
     - name: Setup Emscripten
       if: steps.built.outputs.cache-hit != 'true'
@@ -25,8 +27,10 @@ runs:
         path: |
           .cache/doom-grid/woof-objects
           .cache/doom-grid/freedoom-*.zip
+          .cache/doom-pixels/woof-objects
+          .cache/doom-pixels/freedoom-*.zip
           ~/.cache/emscripten
-        key: engine-${{ runner.os }}-${{ hashFiles('src/experiments/doom-grid/engine/**') }}
+        key: engine-${{ runner.os }}-${{ hashFiles('src/experiments/doom-grid/engine/**', 'src/experiments/doom-pixels/engine/**') }}
         # Objects are cached by a hash of their inputs, so an older cache is safe.
         restore-keys: engine-${{ runner.os }}-
 
@@ -40,5 +44,7 @@ runs:
       if: steps.built.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: public/doom-grid/engine
+        path: |
+          public/doom-grid/engine
+          public/doom-pixels/engine
         key: ${{ steps.built.outputs.cache-primary-key }}

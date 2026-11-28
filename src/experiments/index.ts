@@ -12,6 +12,12 @@ export const experiments: Experiment[] = [
       "Play Freedoom through an accessible grid that mirrors the live game, even with a screen reader.",
   },
   {
+    slug: "doom-pixels",
+    title: "Doom pixels",
+    description:
+      "Play Freedoom drawn into a UI SDK grid, one cell per pixel, and see what each resolution costs.",
+  },
+  {
     slug: "infinite-combobox",
     title: "Infinite combobox",
     description:
