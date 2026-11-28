@@ -19,6 +19,9 @@ declare global {
   var __UI_SDK_STRICT__: boolean | undefined;
 }
 globalThis.__UI_SDK_STRICT__ = true;
+// Each test mounts the default 16,000-cell grid, which takes over 5 seconds
+// on CI runners.
+vi.setConfig({ testTimeout: 30_000 });
 
 beforeAll(() => {
   HTMLElement.prototype.showPopover = function () {};
