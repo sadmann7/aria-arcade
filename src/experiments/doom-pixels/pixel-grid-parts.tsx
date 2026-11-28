@@ -7,7 +7,13 @@ import { pixelGrid } from "./pixel-grid";
 const {
   Root: PixelGridRoot,
   Row: PixelGridRow,
+  Canvas: PixelGridCanvas,
   Cell: PixelGridCell,
-} = createParts(pixelGrid, { root: "div", row: "div", cell: "div" });
+} = createParts(pixelGrid, {
+  root: "div",
+  canvas: "canvas",
+  row: "div",
+  cell: "div",
+});
 
-export { PixelGridCell, PixelGridRoot, PixelGridRow };
+export { PixelGridCanvas, PixelGridCell, PixelGridRoot, PixelGridRow };

@@ -23,7 +23,12 @@ import { Controls } from "./controls";
 import { doomKey, pauseCode } from "./keys";
 import { createPainter, type FrameStats, type PaintMode } from "./painter";
 import { createPixelGridController, pixelKey, rowKey } from "./pixel-grid";
-import { PixelGridCell, PixelGridRoot, PixelGridRow } from "./pixel-grid-parts";
+import {
+  PixelGridCanvas,
+  PixelGridCell,
+  PixelGridRoot,
+  PixelGridRow,
+} from "./pixel-grid-parts";
 import {
   columnChoices,
   defaultColumns,
@@ -38,7 +43,7 @@ import { type DoomFrame, useDoom } from "./use-doom";
 
 export function DoomPixels() {
   const [columns, setColumns] = React.useState<number>(defaultColumns);
-  const [mode, setMode] = React.useState<PaintMode>("rows");
+  const [mode, setMode] = React.useState<PaintMode>("canvas");
   const [isGridShown, setIsGridShown] = React.useState(false);
   const [isSoundOn, setIsSoundOn] = React.useState(true);
   const [isPaused, setIsPaused] = React.useState(false);
@@ -370,8 +375,9 @@ const PixelGrid = React.memo(function PixelGrid({
           "--rows": rows,
         } as React.CSSProperties
       }
-      className="grid size-full grid-rows-[repeat(var(--rows),1fr)]"
+      className="relative isolate grid size-full grid-rows-[repeat(var(--rows),1fr)]"
     >
+      <PixelGridCanvas className="pointer-events-none absolute inset-0 -z-10 size-full [image-rendering:pixelated]" />
       {rowIndexes.map((row) => (
         <PixelGridRow
           key={row}
@@ -385,7 +391,7 @@ const PixelGrid = React.memo(function PixelGrid({
               id={pixelKey(row, col)}
               row={row}
               col={col}
-              className="outline-none group-data-[paint=rows]:bg-transparent! group-data-paused:focus-visible:relative group-data-paused:focus-visible:z-10 group-data-paused:focus-visible:outline-2 group-data-paused:focus-visible:outline-ring group-data-paused:focus-visible:outline-solid"
+              className="group-data-[paint=rows]:bg-transparent!group-data-paused:focus-visible:relative outline-none group-data-[paint=canvas]:bg-transparent! group-data-paused:focus-visible:z-10 group-data-paused:focus-visible:outline-2 group-data-paused:focus-visible:outline-ring group-data-paused:focus-visible:outline-solid"
             />
           ))}
         </PixelGridRow>
@@ -398,6 +404,7 @@ const paintLabels: Record<PaintMode, string> = {
   cells: "Live cells",
   rows: "Live rows",
   direct: "Style writes",
+  canvas: "Canvas",
 };
 
 const paintModes = Object.keys(paintLabels) as PaintMode[];
