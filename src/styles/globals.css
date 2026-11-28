@@ -2,18 +2,42 @@
 
 @import "tailwindcss";
 
-@theme static {
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --color-background: #0c0b10;
-  --color-foreground: #ecebf2;
-  --color-card: #16141d;
-  --color-muted: #221f2c;
-  --color-muted-foreground: #8f8a9e;
-  --color-border: #ffffff1a;
-  --color-ring: #c58bff;
+  --font-display: var(--font-archivo), var(--font-sans);
+  --font-heavy: var(--font-archivo-black), var(--font-sans);
+  --font-pixel: var(--font-silkscreen), ui-monospace, monospace;
+  --font-readout: var(--font-vt323), ui-monospace, monospace;
+
+  --color-background: #0b0a0d;
+  --color-foreground: #f2f0f5;
+  --color-card: #17151c;
+  --color-muted: #2a2733;
+  --color-muted-foreground: #9a95a6;
+  --color-secondary-foreground: #c9c5d2;
+  --color-faint-foreground: #6e6979;
+  --color-border: #ffffff1f;
+  --color-divider: #ffffff14;
+  --color-input: #ffffff29;
+  --color-ring: #ff5fa2;
   --color-primary: #ff5fa2;
-  --color-primary-foreground: #160b11;
+  --color-primary-foreground: #0b0a0d;
+  --color-accent: #ffc23d;
+  --color-accent-foreground: #0b0a0d;
+  --color-destructive: #e5484d;
+
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+
+  --shadow-hard: 6px 6px 0 #000000a6;
+  --shadow-hard-lg: 10px 10px 0 #000000a6;
 }
 
 @layer base {
@@ -25,5 +49,88 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-size: 20px;
+    line-height: 30px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .arcade-label {
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+  }
+
+  .arcade-keycap {
+    display: inline-block;
+    border: 1.5px solid var(--color-muted-foreground);
+    padding: 2px 7px;
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--color-foreground);
+  }
+
+  .arcade-hint {
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+  }
+
+  .arcade-frame {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-card);
+    box-shadow: var(--shadow-hard-lg);
+  }
+
+  .arcade-panel {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-card);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .arcade-panel-head {
+    background-color: var(--color-background);
+    padding: 10px 16px;
+  }
+
+  .arcade-panel-row {
+    display: flex;
+    gap: 12px;
+    padding-inline: 16px;
+  }
+
+  .arcade-panel-row + .arcade-panel-row {
+    border-top: 1px solid var(--color-divider);
+  }
+
+  .arcade-readout {
+    font-family: var(--font-readout);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-foreground);
+  }
+
+  .arcade-stat {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
   }
 }
