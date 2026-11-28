@@ -1,10 +1,16 @@
 import type { PixelGridController } from "./pixel-grid";
 import type { DoomFrame } from "./use-doom";
 
-import { pixelKey } from "./pixel-grid";
-import { hexColor, pixelCount } from "./resolution";
+import { pixelKey, rowKey } from "./pixel-grid";
+import {
+  columnStops,
+  hexColor,
+  pixelCount,
+  rowGradient,
+  rowsFor,
+} from "./resolution";
 
-export type PaintMode = "live" | "direct";
+export type PaintMode = "cells" | "rows" | "direct";
 
 export interface FrameStats {
   fps: number;
@@ -43,9 +49,11 @@ export function createPainter({ controller, onStats }: PainterOptions) {
   let target: PainterTarget | null = null;
   let after: MessageChannel | null = null;
   let columns = 0;
-  let mode: PaintMode = "live";
+  let mode: PaintMode = "cells";
   let current = new Int32Array(0);
   let keys: string[] = [];
+  let rowKeys: string[] = [];
+  let stops: string[] = [];
   let elements: HTMLElement[] | null = null;
   let pending: DoomFrame | null = null;
   let frameRequest = 0;
@@ -87,14 +95,47 @@ export function createPainter({ controller, onStats }: PainterOptions) {
     if (!frame) return;
     const start = performance.now();
     const colors = new Int32Array(frame.buffer);
+    const changed = mode === "rows" ? paintRows(colors) : paintCells(colors);
+    current = colors;
+    drawn = {
+      start,
+      scriptMs: performance.now() - start,
+      changed,
+      engineFrame: frame.engineFrame,
+    };
+    after?.port2.postMessage(null);
+  }
+
+  function paintRows(colors: Int32Array) {
+    const changedRows: Record<string, string> = {};
+    let changed = 0;
+    for (let row = 0; row < rowKeys.length; row += 1) {
+      let rowChanged = 0;
+      for (let index = row * columns; index < (row + 1) * columns; index += 1) {
+        if (colors[index] !== current[index]) rowChanged += 1;
+      }
+      if (rowChanged === 0) continue;
+      changed += rowChanged;
+      changedRows[rowKeys[row] ?? ""] = rowGradient(
+        colors,
+        row,
+        columns,
+        stops,
+      );
+    }
+    controller.paintRows(colors, changedRows);
+    return changed;
+  }
+
+  function paintCells(colors: Int32Array) {
     const changedIndexes: number[] = [];
     const changedKeys: Record<string, number> = {};
     for (let index = 0; index < colors.length; index += 1) {
       if (colors[index] === current[index]) continue;
       changedIndexes.push(index);
-      if (mode === "live") changedKeys[keys[index] ?? ""] = colors[index] ?? 0;
+      if (mode === "cells") changedKeys[keys[index] ?? ""] = colors[index] ?? 0;
     }
-    if (mode === "live") {
+    if (mode === "cells") {
       controller.paint(colors, changedKeys);
     } else {
       controller.paint(colors, noChanges);
@@ -104,14 +145,7 @@ export function createPainter({ controller, onStats }: PainterOptions) {
         if (cell) cell.style.backgroundColor = hexColor(colors[index] ?? 0);
       }
     }
-    current = colors;
-    drawn = {
-      start,
-      scriptMs: performance.now() - start,
-      changed: changedIndexes.length,
-      engineFrame: frame.engineFrame,
-    };
-    after?.port2.postMessage(null);
+    return changedIndexes.length;
   }
 
   return {
@@ -121,12 +155,23 @@ export function createPainter({ controller, onStats }: PainterOptions) {
       keys = Array.from({ length: pixelCount(next) }, (_, index) =>
         pixelKey(Math.floor(index / next), index % next),
       );
+      rowKeys = Array.from({ length: rowsFor(next) }, (_, row) => rowKey(row));
+      stops = columnStops(next);
       elements = null;
       pending = null;
       totals = emptyTotals();
     },
     setMode(next: PaintMode) {
+      if (next === mode) return;
+      if (mode === "rows") {
+        controller.paintRows(
+          current,
+          Object.fromEntries(rowKeys.map((key) => [key, ""])),
+        );
+      }
       mode = next;
+      // The new mode starts from nothing, so its first frame paints every pixel.
+      current = new Int32Array(current.length).fill(-1);
     },
     colorAt(row: number, col: number) {
       return Math.max(0, current[row * columns + col] ?? 0);

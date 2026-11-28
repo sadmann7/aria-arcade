@@ -22,7 +22,7 @@ import * as React from "react";
 import { Controls } from "./controls";
 import { doomKey, pauseCode } from "./keys";
 import { createPainter, type FrameStats, type PaintMode } from "./painter";
-import { createPixelGridController, pixelKey } from "./pixel-grid";
+import { createPixelGridController, pixelKey, rowKey } from "./pixel-grid";
 import { PixelGridCell, PixelGridRoot, PixelGridRow } from "./pixel-grid-parts";
 import {
   columnChoices,
@@ -38,7 +38,7 @@ import { type DoomFrame, useDoom } from "./use-doom";
 
 export function DoomPixels() {
   const [columns, setColumns] = React.useState<number>(defaultColumns);
-  const [mode, setMode] = React.useState<PaintMode>("live");
+  const [mode, setMode] = React.useState<PaintMode>("cells");
   const [isGridShown, setIsGridShown] = React.useState(false);
   const [isSoundOn, setIsSoundOn] = React.useState(true);
   const [isPaused, setIsPaused] = React.useState(false);
@@ -53,7 +53,7 @@ export function DoomPixels() {
     createPainter({ controller, onStats: setStats }),
   );
   const rows = rowsFor(columns);
-  const canShowGrid = columns <= gridLinesUpTo;
+  const canShowGrid = columns <= gridLinesUpTo && mode !== "rows";
   const showsGrid = isGridShown && canShowGrid;
   const isPlaying = isFocused && !isPaused;
 
@@ -240,23 +240,20 @@ export function DoomPixels() {
           <SegmentedControl
             value={mode}
             onValueChange={(value) => {
-              if (value === "live" || value === "direct") setMode(value);
+              if (isPaintMode(value)) setMode(value);
             }}
             className="relative flex h-8 rounded-md border border-border bg-card p-0.5 text-sm"
           >
             <SegmentedControlIndicator className="absolute inset-y-0.5 left-(--indicator-left) w-(--indicator-width) rounded bg-muted transition-[left,width] motion-reduce:transition-none" />
-            <SegmentedControlItem
-              value="live"
-              className="relative rounded px-2.5 focus-visible:outline-2 focus-visible:outline-ring data-checked:text-foreground"
-            >
-              Live state
-            </SegmentedControlItem>
-            <SegmentedControlItem
-              value="direct"
-              className="relative rounded px-2.5 focus-visible:outline-2 focus-visible:outline-ring data-checked:text-foreground"
-            >
-              Style writes
-            </SegmentedControlItem>
+            {paintModes.map((paintMode) => (
+              <SegmentedControlItem
+                key={paintMode}
+                value={paintMode}
+                className="relative rounded px-2.5 focus-visible:outline-2 focus-visible:outline-ring data-checked:text-foreground"
+              >
+                {paintLabels[paintMode]}
+              </SegmentedControlItem>
+            ))}
           </SegmentedControl>
         </Field>
         <div className="flex h-8 flex-wrap items-center gap-x-5 gap-y-2">
@@ -265,9 +262,11 @@ export function DoomPixels() {
             isChecked={showsGrid}
             isDisabled={!canShowGrid}
             description={
-              canShowGrid
-                ? undefined
-                : `Up to ${resolutionLabel(gridLinesUpTo)}`
+              mode === "rows"
+                ? "Not with live rows"
+                : canShowGrid
+                  ? undefined
+                  : `Up to ${resolutionLabel(gridLinesUpTo)}`
             }
             onCheckedChange={setIsGridShown}
           />
@@ -296,6 +295,7 @@ export function DoomPixels() {
           ref={stageRef}
           data-paused={isPaused ? "" : undefined}
           data-lines={showsGrid ? "" : undefined}
+          data-paint={mode}
           className="group relative aspect-8/5 w-full max-w-[calc((100dvh-12rem)*1.6)] min-w-0 overflow-hidden rounded-md bg-black ring-1 ring-border focus-within:ring-2 focus-within:ring-ring"
         >
           {error ? (
@@ -366,6 +366,8 @@ const PixelGrid = React.memo(function PixelGrid({
       {rowIndexes.map((row) => (
         <PixelGridRow
           key={row}
+          id={rowKey(row)}
+          row={row}
           className="grid grid-cols-[repeat(var(--columns),1fr)] group-data-lines:gap-px"
         >
           {columnIndexes.map((col) => (
@@ -374,7 +376,7 @@ const PixelGrid = React.memo(function PixelGrid({
               id={pixelKey(row, col)}
               row={row}
               col={col}
-              className="bg-black outline-none group-data-paused:focus-visible:relative group-data-paused:focus-visible:z-10 group-data-paused:focus-visible:outline-2 group-data-paused:focus-visible:outline-ring group-data-paused:focus-visible:outline-solid"
+              className="outline-none group-data-[paint=rows]:bg-transparent! group-data-paused:focus-visible:relative group-data-paused:focus-visible:z-10 group-data-paused:focus-visible:outline-2 group-data-paused:focus-visible:outline-ring group-data-paused:focus-visible:outline-solid"
             />
           ))}
         </PixelGridRow>
@@ -382,6 +384,18 @@ const PixelGrid = React.memo(function PixelGrid({
     </PixelGridRoot>
   );
 });
+
+const paintLabels: Record<PaintMode, string> = {
+  cells: "Live cells",
+  rows: "Live rows",
+  direct: "Style writes",
+};
+
+const paintModes = Object.keys(paintLabels) as PaintMode[];
+
+function isPaintMode(value: unknown): value is PaintMode {
+  return paintModes.some((paintMode) => paintMode === value);
+}
 
 interface ReadoutProps {
   columns: number;
@@ -394,8 +408,7 @@ function Readout({ columns, mode, stats, buildMs }: ReadoutProps) {
   const total = pixelCount(columns);
   return (
     <p className="tabular-nums">
-      {total.toLocaleString("en-US")} cells ·{" "}
-      {mode === "live" ? "live state" : "style writes"}
+      {total.toLocaleString("en-US")} cells · {paintLabels[mode].toLowerCase()}
       {buildMs === null ? "" : ` · built in ${Math.round(buildMs)} ms`}
       {stats
         ? ` · ${stats.fps.toFixed(1)} fps (engine ${Math.round(stats.engineFps)}) · ${stats.frameMs.toFixed(1)} ms a frame, ${stats.scriptMs.toFixed(1)} ms script · ${Math.round(stats.changed).toLocaleString("en-US")} cells changed`
