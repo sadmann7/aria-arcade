@@ -53,7 +53,7 @@ export function DoomPixels() {
     createPainter({ controller, onStats: setStats }),
   );
   const rows = rowsFor(columns);
-  const canShowGrid = columns <= gridLinesUpTo && mode !== "rows";
+  const canShowGrid = columns <= gridLinesUpTo;
   const showsGrid = isGridShown && canShowGrid;
   const isPlaying = isFocused && !isPaused;
 
@@ -262,11 +262,9 @@ export function DoomPixels() {
             isChecked={showsGrid}
             isDisabled={!canShowGrid}
             description={
-              mode === "rows"
-                ? "Not with live rows"
-                : canShowGrid
-                  ? undefined
-                  : `Up to ${resolutionLabel(gridLinesUpTo)}`
+              canShowGrid
+                ? undefined
+                : `Up to ${resolutionLabel(gridLinesUpTo)}`
             }
             onCheckedChange={setIsGridShown}
           />
@@ -294,7 +292,6 @@ export function DoomPixels() {
         <div
           ref={stageRef}
           data-paused={isPaused ? "" : undefined}
-          data-lines={showsGrid ? "" : undefined}
           data-paint={mode}
           className="group relative aspect-8/5 w-full max-w-[calc((100dvh-12rem)*1.6)] min-w-0 overflow-hidden rounded-md bg-black ring-1 ring-border focus-within:ring-2 focus-within:ring-ring"
         >
@@ -315,6 +312,18 @@ export function DoomPixels() {
               describe={describe}
             />
           )}
+          {showsGrid ? (
+            <div
+              aria-hidden="true"
+              style={
+                {
+                  "--cell-width": `${100 / columns}%`,
+                  "--cell-height": `${100 / rows}%`,
+                } as React.CSSProperties
+              }
+              className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--color-neutral-800)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-neutral-800)_1px,transparent_1px)] bg-size-[var(--cell-width)_var(--cell-height)]"
+            />
+          ) : null}
         </div>
         <p aria-live="polite" className="min-h-5 text-sm text-muted-foreground">
           {status}
@@ -361,14 +370,14 @@ const PixelGrid = React.memo(function PixelGrid({
           "--rows": rows,
         } as React.CSSProperties
       }
-      className="grid size-full grid-rows-[repeat(var(--rows),1fr)] group-data-lines:gap-px group-data-lines:bg-neutral-800"
+      className="grid size-full grid-rows-[repeat(var(--rows),1fr)]"
     >
       {rowIndexes.map((row) => (
         <PixelGridRow
           key={row}
           id={rowKey(row)}
           row={row}
-          className="grid grid-cols-[repeat(var(--columns),1fr)] group-data-lines:gap-px"
+          className="grid grid-cols-[repeat(var(--columns),1fr)]"
         >
           {columnIndexes.map((col) => (
             <PixelGridCell

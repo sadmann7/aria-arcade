@@ -264,10 +264,8 @@ it("paints whole scanlines as gradients with Live rows", async () => {
       .getByRole("radio", { name: "Live rows" })
       .getAttribute("aria-checked"),
   ).toBe("true");
-  expect(screen.getByRole("switch", { name: "Show grid" })).toHaveProperty(
-    "disabled",
-    true,
-  );
+  await user.click(screen.getByRole("switch", { name: "Show grid" }));
+  await screen.findByRole("switch", { name: "Show grid", checked: true });
   for (const [index, color] of [0x080808, 0x101010].entries()) {
     await sendFrame(color, index + 1);
     expect(rowStyle()).toContain(hexToRgb(hexColor(color)));
