@@ -18,7 +18,8 @@ import {
   type Origin,
   simplifyPath,
 } from "./grid-map";
-import { Inventory } from "./inventory";
+import { KeysPopover, Legend } from "./help";
+import { Hud } from "./hud";
 import {
   type CellMove,
   createMapGridController,
@@ -26,7 +27,6 @@ import {
 } from "./map-grid";
 import { MapGridCell, MapGridRoot, MapGridRow } from "./map-grid-parts";
 import { SettingSwitch } from "./setting-switch";
-import { weapons } from "./things";
 import { useDoom } from "./use-doom";
 
 const slowPercent = 40;
@@ -197,57 +197,49 @@ export function DoomGrid() {
     return true;
   };
 
-  const weapon = snapshot
-    ? weapons.find((candidate) => candidate.index === snapshot.player.weapon)
-    : undefined;
-
   return (
-    <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-8">
-      <header className="grid gap-2">
-        <Link
-          href="/"
-          className="w-fit text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 px-4 py-3 lg:h-dvh lg:justify-center">
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+          <Link
+            href="/"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            Back to the gallery
+          </Link>
+          <h1 className="text-lg font-semibold tracking-tight">Doom grid</h1>
+          <p className="text-xs text-pretty text-muted-foreground">
+            The grid mirrors the 24 by 24 cells around you, 64 map units each,
+            with north up.
+          </p>
+        </div>
+        <section
+          aria-label="Settings"
+          className="flex flex-wrap gap-x-5 gap-y-2"
         >
-          Back to the gallery
-        </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Doom grid</h1>
-        <p className="max-w-[70ch] text-sm text-pretty text-muted-foreground">
-          Freedoom runs below, and the grid mirrors the 24 by 24 cells around
-          you, 64 map units each, with north up.
-        </p>
+          <SettingSwitch
+            label="Show 3D view"
+            isChecked={isViewShown}
+            onCheckedChange={setIsViewShown}
+          />
+          <SettingSwitch
+            label="Slow"
+            isChecked={isSlow}
+            onCheckedChange={(isChecked) => {
+              setIsSlow(isChecked);
+              send({ type: "speed", percent: isChecked ? slowPercent : 100 });
+            }}
+          />
+          <SettingSwitch
+            label="Pause on select"
+            isChecked={isPauseOnSelect}
+            onCheckedChange={(isChecked) => {
+              setIsPauseOnSelect(isChecked);
+              if (!isChecked) setTargetPause(false);
+            }}
+          />
+        </section>
       </header>
-
-      <section aria-label="Settings" className="flex flex-wrap gap-x-6 gap-y-3">
-        <SettingSwitch
-          label="Show 3D view"
-          isChecked={isViewShown}
-          onCheckedChange={setIsViewShown}
-        />
-        <SettingSwitch
-          label="Slow"
-          isChecked={isSlow}
-          onCheckedChange={(isChecked) => {
-            setIsSlow(isChecked);
-            send({ type: "speed", percent: isChecked ? slowPercent : 100 });
-          }}
-        />
-        <SettingSwitch
-          label="Pause on select"
-          isChecked={isPauseOnSelect}
-          onCheckedChange={(isChecked) => {
-            setIsPauseOnSelect(isChecked);
-            if (!isChecked) setTargetPause(false);
-          }}
-        />
-      </section>
-
-      {isViewShown ? (
-        <canvas
-          ref={canvasRef}
-          aria-hidden
-          className="mx-auto aspect-[4/3] w-full max-w-2xl rounded-lg bg-black [image-rendering:pixelated]"
-        />
-      ) : null}
 
       {error ? (
         <p role="alert" className="text-sm text-primary">
@@ -255,86 +247,102 @@ export function DoomGrid() {
         </p>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_16rem]">
-        <div className="grid content-start gap-3">
-          <p className="text-sm text-muted-foreground tabular-nums">
-            {snapshot
-              ? `Health ${snapshot.player.health} · Armor ${snapshot.player.armor} · ${weapon?.name ?? "Unarmed"} · Kills ${snapshot.kills} of ${snapshot.totalKills}`
-              : "Loading Freedoom…"}
-          </p>
-          <MapGridRoot
-            ref={gridRef}
-            aria-label="Map"
-            aria-describedby="doom-grid-keys"
-            controller={controller}
-            onBlur={(event) => {
-              const next = event.relatedTarget;
-              if (
-                !(next instanceof Node) ||
-                !event.currentTarget.contains(next)
-              ) {
-                setTargetPause(false);
-              }
-            }}
-            onCellMove={onCellMove}
-            onCellActivate={onCellActivate}
-            onCellKey={onCellKey}
-            className="grid aspect-square w-full max-w-2xl gap-px rounded-lg border border-border bg-background p-px select-none"
-          >
-            {rows.map((row) => (
-              <MapGridRow key={row} className="grid grid-cols-24 gap-px">
-                {rows.map((col) => {
-                  const cell = grid?.mapCells[row * gridSize + col];
-                  return (
-                    <MapGridCell
-                      key={col}
-                      id={gridCellKey({ row, col })}
-                      row={row}
-                      col={col}
-                      isExpanded={
-                        cell?.terrain === "door" && cell.door
-                          ? cell.door.open > 0 || cell.door.isMoving
-                          : undefined
-                      }
-                      aria-label={
-                        cell && snapshot ? describeCell(cell, snapshot) : "Wall"
-                      }
-                      isDisabled={!cell || !isFocusable(cell)}
-                      className={cellClass(cell)}
-                    >
-                      <span aria-hidden>{cellGlyph(cell)}</span>
-                    </MapGridCell>
-                  );
-                })}
-              </MapGridRow>
-            ))}
-          </MapGridRoot>
-          <p
-            id="doom-grid-keys"
-            className="max-w-2xl text-sm text-muted-foreground"
-          >
-            Arrows walk to the cell they reach. Shift with an arrow looks
-            without walking. Enter fires at a monster, opens a door, or walks to
-            the cell. T jumps to the next monster, nearest in sight first, and
-            Escape back to you.
-          </p>
-        </div>
-        <section
-          aria-labelledby="doom-inventory"
-          className="grid content-start gap-2"
+      <div
+        data-view={isViewShown ? "shown" : "hidden"}
+        className="group/stage max-lg:contents lg:[container-type:size] lg:flex lg:h-[calc((min(100vw,1600px)-2.75rem)*3/7)] lg:min-h-0 lg:shrink lg:items-center lg:justify-center lg:gap-3 lg:data-[view=hidden]:h-full"
+      >
+        <MapGridRoot
+          ref={gridRef}
+          aria-label="Map"
+          aria-describedby="doom-grid-keys"
+          controller={controller}
+          onBlur={(event) => {
+            const next = event.relatedTarget;
+            if (
+              !(next instanceof Node) ||
+              !event.currentTarget.contains(next)
+            ) {
+              setTargetPause(false);
+            }
+          }}
+          onCellMove={onCellMove}
+          onCellActivate={onCellActivate}
+          onCellKey={onCellKey}
+          className="[container-type:inline-size] grid aspect-square w-full shrink-0 grid-rows-24 gap-px rounded-lg border border-border bg-background p-px select-none lg:h-[min(100cqh,100cqw)] lg:w-auto lg:group-data-[view=shown]/stage:order-last lg:group-data-[view=shown]/stage:h-[min(100cqh,calc((100cqw-0.75rem)*3/7))]"
         >
-          <h2 id="doom-inventory" className="text-sm font-medium">
-            Inventory
-          </h2>
-          {snapshot ? (
-            <Inventory
-              player={snapshot.player}
-              onWeaponChange={(key) => send({ type: "weapon", key })}
-            />
-          ) : null}
-        </section>
+          {rows.map((row) => (
+            <MapGridRow key={row} className="grid min-h-0 grid-cols-24 gap-px">
+              {rows.map((col) => {
+                const cell = grid?.mapCells[row * gridSize + col];
+                return (
+                  <MapGridCell
+                    key={col}
+                    id={gridCellKey({ row, col })}
+                    row={row}
+                    col={col}
+                    isExpanded={
+                      cell?.terrain === "door" && cell.door
+                        ? cell.door.open > 0 || cell.door.isMoving
+                        : undefined
+                    }
+                    aria-label={
+                      cell && snapshot ? describeCell(cell, snapshot) : "Wall"
+                    }
+                    isDisabled={!cell || !isFocusable(cell)}
+                    className={cellClass(cell)}
+                  >
+                    <span aria-hidden>{cellGlyph(cell)}</span>
+                  </MapGridCell>
+                );
+              })}
+            </MapGridRow>
+          ))}
+        </MapGridRoot>
+        {isViewShown ? (
+          <canvas
+            ref={canvasRef}
+            aria-hidden
+            className="aspect-[4/3] w-full shrink-0 rounded-lg bg-black [image-rendering:pixelated] max-lg:order-1 lg:h-[min(100cqh,calc((100cqw-0.75rem)*3/7))] lg:w-auto"
+          />
+        ) : null}
       </div>
+
+      <Hud
+        snapshot={snapshot}
+        onWeaponChange={(key) => send({ type: "weapon", key })}
+      />
+
+      <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <div className="flex items-center gap-3">
+          <KeysPopover />
+          <ul
+            aria-label="Key hints"
+            className="flex flex-wrap gap-x-3 text-xs text-muted-foreground"
+          >
+            <Hint keys="Arrows">walk</Hint>
+            <Hint keys="Shift + arrow">look</Hint>
+            <Hint keys="Enter">fire, open, walk</Hint>
+            <Hint keys="T">next monster</Hint>
+            <Hint keys="Esc">back to you</Hint>
+          </ul>
+        </div>
+        <Legend />
+      </footer>
+      <p id="doom-grid-keys" hidden>
+        Arrows walk to the cell they reach. Shift with an arrow looks without
+        walking. Enter fires at a monster, opens a door, or walks to the cell. T
+        jumps to the next monster, nearest in sight first, and Escape back to
+        you.
+      </p>
     </main>
+  );
+}
+
+function Hint({ keys, children }: { keys: string; children: string }) {
+  return (
+    <li className="whitespace-nowrap">
+      <kbd className="font-mono text-foreground">{keys}</kbd> {children}
+    </li>
   );
 }
 
@@ -361,7 +369,7 @@ function cellGlyph(cell: MapCell | undefined) {
 
 function cellClass(cell: MapCell | undefined) {
   const base =
-    "flex aspect-square items-center justify-center rounded-[2px] text-[clamp(8px,1.6vw,14px)] font-bold leading-none outline-none focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-ring";
+    "flex min-w-0 items-center justify-center rounded-[2px] text-[max(8px,2.2cqw)] font-bold leading-none outline-none focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-ring";
   if (!cell || !isFocusable(cell)) return `${base} bg-background`;
   if (cell.isPlayer) return `${base} bg-primary text-primary-foreground`;
   if (cell.monsters.length > 0) return `${base} bg-red-950 text-red-300`;
