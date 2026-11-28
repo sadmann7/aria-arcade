@@ -84,7 +84,6 @@ const walkMoving = 1;
 const keyTapMs = 120;
 const intermissionState = 1;
 const levelState = 0;
-let hasStartedLevel = false;
 let gameState = -1;
 let speed = 100;
 let isPaused = false;
@@ -168,11 +167,10 @@ function runFrame() {
   if (!doom) return;
   doom._wadsmith_run_frame();
   const state = doom._wadsmith_game_state();
-  // Pausing only takes once a level runs, so a pause asked for while loading
-  // waits for it.
-  if (!hasStartedLevel && state === levelState) {
-    hasStartedLevel = true;
-    if (isPaused) doom._wadsmith_set_paused(1);
+  // Pausing only takes while a level runs, so a pause asked for on another
+  // screen waits for the next level.
+  if (state !== gameState && state === levelState && isPaused) {
+    doom._wadsmith_set_paused(1);
   }
   if (state !== gameState && state === intermissionState) {
     post({ type: "intermission" });

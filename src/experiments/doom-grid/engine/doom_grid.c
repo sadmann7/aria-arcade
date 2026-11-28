@@ -296,12 +296,19 @@ void DOOMGRID_BuildTiccmd(ticcmd_t *cmd)
     }
     // Respawning and leaving the intermission screen both wait for use. The
     // intermission needs a fresh press to skip its count and another to leave,
-    // so it gets one every other tic until the next level starts.
-    if (press_use && gamestate != GS_LEVEL)
+    // so it gets one every other tic until it ends.
+    if (gamestate != GS_LEVEL)
     {
-        if (gametic & 1)
+        // A pending game action means this command lands on another screen,
+        // such as the next level or a story text.
+        if (press_use && gamestate == GS_INTERMISSION
+            && gameaction == ga_nothing && (gametic & 1))
         {
             cmd->buttons |= BT_USE;
+        }
+        if (gamestate != GS_INTERMISSION)
+        {
+            press_use = false;
         }
         return;
     }
