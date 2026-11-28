@@ -1,11 +1,18 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { createAgent } from "@ui-sdk/react/agent";
 import { afterEach, beforeEach, expect, it } from "vitest";
 
 import type { DoomRequest, DoomResponse } from "./doom-worker";
 
 import { DoomGrid } from "./doom-grid";
+import { testSnapshot } from "./test-snapshot";
 
 declare global {
   var __UI_SDK_STRICT__: boolean | undefined;
@@ -80,4 +87,28 @@ it("says how to build the engine in place of the 3D view when it's missing", () 
   expect(screen.getByText(message).getAttribute("role")).toBe("alert");
   expect(document.querySelector("canvas")).toBeNull();
   expect(screen.getByText("Freedoom didn't load.")).toBeTruthy();
+});
+
+it("switches to an owned weapon from its number key on the map", async () => {
+  render(<DoomGrid />);
+  act(() =>
+    reply({
+      type: "snapshot",
+      json: JSON.stringify({
+        ...testSnapshot(),
+        player: { ...testSnapshot().player, dead: 0 },
+        walk: [0, 0],
+        firing: 0,
+        message: [0, ""],
+      }),
+      lines: "[]",
+    }),
+  );
+  const you = await screen.findByRole("gridcell", { name: /^You/ });
+  act(() => you.focus());
+  fireEvent.keyDown(you, { key: "2" });
+  fireEvent.keyDown(you, { key: "5" });
+  expect(sent.filter((message) => message.type === "weapon")).toEqual([
+    { type: "weapon", key: "2" },
+  ]);
 });

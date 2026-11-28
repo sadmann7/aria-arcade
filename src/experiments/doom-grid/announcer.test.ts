@@ -98,6 +98,14 @@ describe("describeChanges", () => {
     expect(describeChanges(opening, opening)).toEqual([]);
   });
 
+  it("names the weapon the player switches to", () => {
+    const switched = testSnapshot({
+      monsters: [imp],
+      player: { ...before.player, weapon: 0 },
+    });
+    expect(texts(describeChanges(before, switched))).toEqual(["Fist."]);
+  });
+
   it("passes the engine's pickup message through", () => {
     const picked = testSnapshot({
       message: { seq: 1, text: "Picked up some bullets." },

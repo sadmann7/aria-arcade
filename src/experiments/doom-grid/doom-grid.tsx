@@ -4,6 +4,8 @@ import { announce, type GridCell } from "@ui-sdk/core";
 import Link from "next/link";
 import * as React from "react";
 
+import type { Snapshot } from "./snapshot";
+
 import {
   buildGrid,
   cellCenter,
@@ -27,6 +29,7 @@ import {
 } from "./map-grid";
 import { MapGridCell, MapGridRoot, MapGridRow } from "./map-grid-parts";
 import { SettingSwitch } from "./setting-switch";
+import { weapons } from "./things";
 import { useDoom } from "./use-doom";
 
 const slowPercent = 40;
@@ -35,7 +38,7 @@ const rows = Array.from({ length: gridSize }, (_, row) => row);
 interface Latest {
   grid: MapGrid | null;
   origin: Origin | null;
-  player: { x: number; y: number; dead: boolean } | null;
+  player: Snapshot["player"] | null;
   isPauseOnSelect: boolean;
   isIntermission: boolean;
 }
@@ -171,6 +174,16 @@ export function DoomGrid() {
     if (!current || !shown || !player) return false;
     if (event.key === "Escape") {
       controller.focusCell(gridPosition(shown, player.x, player.y));
+      return true;
+    }
+    if (/^[1-7]$/.test(event.key)) {
+      const isOwned = weapons.some(
+        (weapon) =>
+          weapon.key === event.key &&
+          (player.weapons & (1 << weapon.index)) !== 0,
+      );
+      if (isOwned) send({ type: "weapon", key: event.key });
+      else announce("You don't have that weapon.");
       return true;
     }
     if (event.key.toLowerCase() !== "t") return false;
@@ -324,6 +337,7 @@ export function DoomGrid() {
             <Hint keys="Shift + arrow">look</Hint>
             <Hint keys="Enter">fire, open, walk</Hint>
             <Hint keys="T">next monster</Hint>
+            <Hint keys="1–7">weapon</Hint>
             <Hint keys="Esc">back to you</Hint>
           </ul>
         </div>
@@ -333,7 +347,7 @@ export function DoomGrid() {
         Arrows walk to the cell they reach. Shift with an arrow looks without
         walking. Enter fires at a monster, opens a door, or walks to the cell. T
         jumps to the next monster, nearest in sight first, and Escape back to
-        you.
+        you. Number keys 1 to 7 switch weapons.
       </p>
     </main>
   );
