@@ -12,11 +12,12 @@ import {
 describe("resolution", () => {
   it("keeps Doom's 16:10 shape at every choice", () => {
     expect(columnChoices.map((columns) => rowsFor(columns))).toEqual([
-      25, 40, 50, 66, 80, 100, 120, 200,
+      25, 40, 50, 66, 80, 100, 120, 200, 400,
     ]);
     expect(pixelCount(320)).toBe(64_000);
     expect(resolutionLabel(320)).toBe("320 × 200 (native)");
     expect(resolutionLabel(80)).toBe("80 × 50");
+    expect(resolutionLabel(640)).toBe("640 × 400 (high)");
   });
 
   it("averages each block of screen pixels into one cell", () => {
