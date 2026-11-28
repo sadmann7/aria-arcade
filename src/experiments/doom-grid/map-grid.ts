@@ -110,6 +110,13 @@ export const mapGrid = definePrimitive({
         "Escape",
         "t",
         "T",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
       ],
       attrs: (state, { props, api }) => ({
         tabindex:

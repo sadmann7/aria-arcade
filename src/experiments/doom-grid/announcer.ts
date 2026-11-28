@@ -1,7 +1,7 @@
 import type { Snapshot } from "./snapshot";
 
 import { directionFrom } from "./grid-map";
-import { monsterName } from "./things";
+import { monsterName, weapons } from "./things";
 
 export type Priority = "polite" | "assertive";
 
@@ -55,6 +55,11 @@ export function describeChanges(
         8000,
       );
     }
+  }
+
+  if (player.weapon !== previous.player.weapon && !player.dead) {
+    const weapon = weapons.find((other) => other.index === player.weapon);
+    if (weapon) say("weapon", `${weapon.name}.`);
   }
 
   if (player.health < previous.player.health && !player.dead) {

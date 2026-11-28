@@ -12,6 +12,7 @@ const keys = [
   { key: "Shift + arrow", action: "Look without walking" },
   { key: "Enter", action: "Fire at a monster, open a door, or walk there" },
   { key: "T", action: "Next monster, nearest in sight first" },
+  { key: "1–7", action: "Switch weapon" },
   { key: "Escape", action: "Back to you" },
 ];
 
