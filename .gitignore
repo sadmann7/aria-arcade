@@ -9,3 +9,8 @@ next-env.d.ts
 *.log
 .DS_Store
 .vercel
+
+# doom-grid engine build and downloads, written by pnpm setup:engine
+/.cache/
+/public/doom-grid/engine/
+/.playwright-mcp/

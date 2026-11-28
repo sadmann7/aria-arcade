@@ -1,0 +1,44 @@
+name: Engine
+description: Builds Woof and fetches Freedoom into public/doom-grid/engine
+runs:
+  using: composite
+  steps:
+    # The engine and Freedoom are pinned, so the same inputs give the same files.
+    - name: Restore the built engine
+      id: built
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: public/doom-grid/engine
+        key: engine-output-${{ runner.os }}-${{ hashFiles('src/experiments/doom-grid/engine/**', '.github/engine/action.yml') }}
+
+    - name: Setup Emscripten
+      if: steps.built.outputs.cache-hit != 'true'
+      uses: mymindstorm/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+      with:
+        version: 7.0.0
+        actions-cache-folder: emsdk-cache
+
+    - name: Cache engine builds
+      if: steps.built.outputs.cache-hit != 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          .cache/doom-grid/woof-objects
+          .cache/doom-grid/freedoom-*.zip
+          ~/.cache/emscripten
+        key: engine-${{ runner.os }}-${{ hashFiles('src/experiments/doom-grid/engine/**') }}
+        # Objects are cached by a hash of their inputs, so an older cache is safe.
+        restore-keys: engine-${{ runner.os }}-
+
+    - name: Build the engine
+      if: steps.built.outputs.cache-hit != 'true'
+      shell: bash
+      run: pnpm setup:engine
+
+    # Saved here rather than at the end of the job, which can remove files from it.
+    - name: Save the built engine
+      if: steps.built.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: public/doom-grid/engine
+        key: ${{ steps.built.outputs.cache-primary-key }}

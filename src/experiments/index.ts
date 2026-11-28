@@ -6,6 +6,12 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
   {
+    slug: "doom-grid",
+    title: "Doom grid",
+    description:
+      "Play Freedoom through an accessible grid that mirrors the live game, even with a screen reader.",
+  },
+  {
     slug: "infinite-combobox",
     title: "Infinite combobox",
     description:
