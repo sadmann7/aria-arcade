@@ -13,6 +13,7 @@ import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import type { DoomRequest, DoomResponse } from "./doom-worker";
 
 import { DoomPixels } from "./doom-pixels";
+import { hexColor } from "./resolution";
 
 declare global {
   var __UI_SDK_STRICT__: boolean | undefined;
@@ -113,12 +114,12 @@ it("names every control and draws one grid cell per pixel", async () => {
   for (const label of ["Resolution", "Paint with", "Show grid", "Sound"]) {
     expect(labels, `${label} is missing from the snapshot`).toContain(label);
   }
-  const grid = screen.getByRole("grid", { name: "Doom screen, 80 × 50" });
-  expect(grid.querySelectorAll('[role="row"]')).toHaveLength(50);
-  expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(4000);
+  const grid = screen.getByRole("grid", { name: "Doom screen, 160 × 100" });
+  expect(grid.querySelectorAll('[role="row"]')).toHaveLength(100);
+  expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(16_000);
   await vi.waitFor(() =>
     expect(sent).toContainEqual(
-      expect.objectContaining({ type: "start", columns: 80 }),
+      expect.objectContaining({ type: "start", columns: 160 }),
     ),
   );
 });
@@ -213,37 +214,88 @@ it("says how to build the engine when it's missing", () => {
   expect(screen.queryByRole("grid")).toBeNull();
 });
 
-it.each(["Live state", "Style writes"])(
+async function sendFrame(color: number, frame: number) {
+  const colors = new Int32Array(16_000).fill(color);
+  act(() =>
+    reply({
+      type: "frame",
+      buffer: colors.buffer,
+      columns: 160,
+      rows: 100,
+      engineFrame: frame,
+    }),
+  );
+  await vi.waitFor(() =>
+    expect(sent.filter((message) => message.type === "drawn")).toHaveLength(
+      frame,
+    ),
+  );
+}
+
+function cellColor() {
+  return screen.getAllByRole("gridcell")[0]?.style.backgroundColor;
+}
+
+function rowStyle() {
+  return screen.getAllByRole("row")[0]?.getAttribute("style") ?? "";
+}
+
+it.each(["Live cells", "Style writes"])(
   "repaints a pixel that changes on frames in a row with %s",
   async (mode) => {
     const user = userEvent.setup();
     render(<DoomPixels />);
     await user.click(screen.getByRole("radio", { name: mode }));
-    const cell = screen.getAllByRole("gridcell")[0];
-    const colorsSent = [0x080808, 0x101010, 0x181818];
-    for (const [index, color] of colorsSent.entries()) {
-      const colors = new Int32Array(4000).fill(color);
-      act(() =>
-        reply({
-          type: "frame",
-          buffer: colors.buffer,
-          columns: 80,
-          rows: 50,
-          engineFrame: color,
-        }),
-      );
-      const hex = `#${color.toString(16).padStart(6, "0")}`;
-      await vi.waitFor(() =>
-        expect(cell?.style.backgroundColor).toBe(hexToRgb(hex)),
-      );
-      await vi.waitFor(() =>
-        expect(sent.filter((message) => message.type === "drawn")).toHaveLength(
-          index + 1,
-        ),
-      );
+    for (const [index, color] of [0x080808, 0x101010, 0x181818].entries()) {
+      await sendFrame(color, index + 1);
+      expect(cellColor()).toBe(hexToRgb(hexColor(color)));
     }
   },
 );
+
+it("paints whole scanlines as gradients with Live rows", async () => {
+  const user = userEvent.setup();
+  render(<DoomPixels />);
+  expect(
+    screen
+      .getByRole("radio", { name: "Live rows" })
+      .getAttribute("aria-checked"),
+  ).toBe("true");
+  expect(screen.getByRole("switch", { name: "Show grid" })).toHaveProperty(
+    "disabled",
+    true,
+  );
+  for (const [index, color] of [0x080808, 0x101010].entries()) {
+    await sendFrame(color, index + 1);
+    expect(rowStyle()).toContain(hexToRgb(hexColor(color)));
+  }
+  expect(cellColor()).not.toBe(hexToRgb("#101010"));
+
+  await user.click(screen.getByRole("radio", { name: "Live cells" }));
+  await sendFrame(0x101010, 3);
+  expect(cellColor()).toBe(hexToRgb("#101010"));
+  expect(rowStyle()).not.toContain("gradient");
+});
+
+it("starts a new resolution with no gradients from the old one", async () => {
+  const user = userEvent.setup();
+  render(<DoomPixels />);
+  await sendFrame(0x080808, 1);
+  expect(rowStyle()).toContain("gradient");
+  await user.click(screen.getByRole("combobox", { name: "Resolution" }));
+  await user.click(await screen.findByRole("option", { name: /^40 × 25/ }));
+  await screen.findByRole("grid", { name: "Doom screen, 40 × 25" });
+  for (const row of screen.getAllByRole("row")) {
+    expect(row.getAttribute("style") ?? "").not.toContain("gradient");
+  }
+  await user.click(screen.getByRole("radio", { name: "Live cells" }));
+  await user.click(screen.getByRole("combobox", { name: "Resolution" }));
+  await user.click(await screen.findByRole("option", { name: /^80 × 50/ }));
+  await screen.findByRole("grid", { name: "Doom screen, 80 × 50" });
+  for (const row of screen.getAllByRole("row")) {
+    expect(row.getAttribute("style") ?? "").not.toContain("gradient");
+  }
+});
 
 function hexToRgb(hex: string) {
   const value = Number.parseInt(hex.slice(1), 16);

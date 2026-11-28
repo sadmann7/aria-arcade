@@ -1,7 +1,7 @@
 export const screenWidth = 320;
 export const screenHeight = 200;
 export const columnChoices = [40, 64, 80, 106, 128, 160, 192, 320] as const;
-export const defaultColumns = 80;
+export const defaultColumns = 160;
 export const gridLinesUpTo = 160;
 
 export function rowsFor(columns: number) {
@@ -72,4 +72,31 @@ export function hexColor(color: number) {
     hexes.set(color, hex);
   }
   return hex;
+}
+
+export function columnStops(columns: number) {
+  return Array.from(
+    { length: columns + 1 },
+    (_, column) => `${Number(((column * 100) / columns).toFixed(3))}%`,
+  );
+}
+
+// One hard stop per run of equal colors, so a flat wall is one stop, not one
+// per pixel.
+export function rowGradient(
+  colors: Int32Array,
+  row: number,
+  columns: number,
+  stops: string[],
+) {
+  const start = row * columns;
+  const runs: string[] = [];
+  let runStart = 0;
+  for (let column = 1; column <= columns; column += 1) {
+    const color = colors[start + runStart] ?? 0;
+    if (column < columns && colors[start + column] === color) continue;
+    runs.push(`${hexColor(color)} ${stops[runStart]} ${stops[column]}`);
+    runStart = column;
+  }
+  return `linear-gradient(90deg,${runs.join(",")})`;
 }
