@@ -514,6 +514,7 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
               aria-pressed={!isMuted}
               onClick={() => sound.setMuted(!isMuted)}
             >
+              <span aria-hidden="true">{isMuted ? "🔇" : "🔊"}</span>
               Sound
             </Button>
           </div>
