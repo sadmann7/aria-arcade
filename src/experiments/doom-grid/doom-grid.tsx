@@ -241,7 +241,7 @@ export function DoomGrid() {
         />
       </section>
 
-      {isViewShown ? (
+      {isViewShown && !error ? (
         <canvas
           ref={canvasRef}
           aria-hidden
@@ -260,7 +260,9 @@ export function DoomGrid() {
           <p className="text-sm text-muted-foreground tabular-nums">
             {snapshot
               ? `Health ${snapshot.player.health} · Armor ${snapshot.player.armor} · ${weapon?.name ?? "Unarmed"} · Kills ${snapshot.kills} of ${snapshot.totalKills}`
-              : "Loading Freedoom…"}
+              : error
+                ? "Freedoom didn't load."
+                : "Loading Freedoom…"}
           </p>
           <MapGridRoot
             ref={gridRef}

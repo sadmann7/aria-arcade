@@ -124,7 +124,13 @@ scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
   } else engine._wadsmith_set_paused(request.isPaused ? 1 : 0);
 });
 
+const missingEngineMessage =
+  "The Doom engine isn't built in this checkout. Run pnpm setup:engine, then reload.";
+
 async function start(engineBase: string) {
+  // The build writes engine.json last, so it only exists once every file does.
+  const built = await fetch(`${engineBase}engine.json`, { method: "HEAD" });
+  if (!built.ok) throw new Error(missingEngineMessage);
   const [{ default: createDoom }, base, wad] = await Promise.all([
     import(
       /* turbopackIgnore: true */ /* webpackIgnore: true */ `${engineBase}woof.js`
