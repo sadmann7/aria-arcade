@@ -20,18 +20,18 @@ export function SettingSwitch({
 }: SettingSwitchProps) {
   const descriptionId = React.useId();
   return (
-    <div className="flex items-center gap-2">
-      <label className="flex items-center gap-2 text-sm">
+    <div className="flex flex-col gap-1 border-b border-divider py-2.5">
+      <label className="flex items-center justify-between gap-4 text-[15px] leading-5">
+        {label}
         <Switch
           checked={isChecked}
           disabled={isDisabled}
           aria-describedby={description ? descriptionId : undefined}
           onCheckedChange={(checked) => onCheckedChange(checked)}
-          className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-muted transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-checked:border-primary data-checked:bg-primary data-disabled:opacity-50"
+          className="inline-flex h-5 w-10 shrink-0 items-center border-[1.5px] border-muted-foreground p-[1.5px] data-checked:border-foreground data-checked:bg-foreground data-disabled:opacity-50"
         >
-          <SwitchThumb className="ml-0.5 size-3.5 rounded-full bg-foreground transition-transform data-checked:translate-x-4 data-checked:bg-primary-foreground" />
+          <SwitchThumb className="size-3.5 bg-muted-foreground transition-transform data-checked:translate-x-5 data-checked:bg-background motion-reduce:transition-none" />
         </Switch>
-        {label}
       </label>
       {description ? (
         <span id={descriptionId} className="text-xs text-muted-foreground">

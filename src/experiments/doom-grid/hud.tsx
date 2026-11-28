@@ -14,19 +14,21 @@ interface HudProps {
 }
 
 const keyColors: Record<string, string> = {
-  blue: "bg-sky-400",
-  yellow: "bg-yellow-300",
-  red: "bg-red-500",
+  blue: "bg-foreground",
+  yellow: "bg-accent",
+  red: "bg-destructive",
 };
 
 export function Hud({ snapshot, isFailed, onWeaponChange }: HudProps) {
   if (!snapshot) {
     return (
-      <section
-        aria-label="Status"
-        className="flex min-h-16 items-center rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground"
-      >
-        {isFailed ? "Freedoom didn't load." : "Loading Freedoom…"}
+      <section aria-label="Status" className="arcade-panel">
+        <p className="arcade-panel-head arcade-label text-destructive">
+          Status
+        </p>
+        <p className="px-4 py-4 text-[15px] leading-5 text-muted-foreground">
+          {isFailed ? "Freedoom didn't load." : "Loading Freedoom…"}
+        </p>
       </section>
     );
   }
@@ -42,107 +44,109 @@ export function Hud({ snapshot, isFailed, onWeaponChange }: HudProps) {
   );
 
   return (
-    <section
-      aria-label="Status"
-      className="flex flex-wrap items-stretch gap-x-5 gap-y-3 rounded-lg border border-border bg-card px-4 py-2.5 lg:justify-between lg:[&>*+*]:border-l lg:[&>*+*]:border-border lg:[&>*+*]:pl-5"
-    >
-      <dl className="flex gap-6">
-        <Stat
-          label="Health"
-          value={`${player.health}%`}
-          tone={player.health <= 25 ? "text-red-400" : undefined}
-        />
-        <Stat label="Armor" value={`${player.armor}%`} />
-      </dl>
-      <div className="flex gap-6">
-        <div className="grid content-between gap-1">
-          <span aria-hidden className={labelClass}>
-            Weapon
-          </span>
-          <Toolbar aria-label="Weapons" className="flex flex-wrap gap-1">
-            <ToggleGroup
-              deselectable={false}
-              value={[String(player.weapon)]}
-              onValueChange={([value]) => {
-                const weapon = weapons.find((w) => String(w.index) === value);
-                if (weapon) onWeaponChange(weapon.key);
-              }}
-              className="flex flex-wrap gap-1"
-            >
-              {owned.map((weapon) => (
-                <Toggle
-                  key={weapon.index}
-                  value={String(weapon.index)}
-                  className="flex h-7 items-center gap-1.5 rounded-md border border-border px-2 text-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring data-pressed:border-primary data-pressed:bg-primary/15 data-pressed:text-foreground"
-                >
-                  <span
-                    aria-hidden
-                    className="font-mono text-xs text-muted-foreground"
-                  >
-                    {weapon.key}
-                  </span>
-                  {weapon.name}
-                </Toggle>
-              ))}
-            </ToggleGroup>
-          </Toolbar>
-        </div>
-        <dl>
+    <>
+      <section aria-label="Status" className="arcade-panel">
+        <p
+          aria-hidden="true"
+          className="arcade-panel-head arcade-label text-destructive"
+        >
+          Status
+        </p>
+        <dl className="arcade-panel-row pt-4 pb-2">
+          <Stat
+            label="Health"
+            value={`${player.health}%`}
+            className={`text-[56px] leading-[52px] ${player.health <= 25 ? "text-destructive" : "text-accent"}`}
+          />
+          <Stat
+            label="Armor"
+            value={`${player.armor}%`}
+            className="text-[56px] leading-[52px]"
+          />
+        </dl>
+        <dl className="arcade-panel-row pt-2 pb-4">
           <Stat
             label="Ammo"
             value={ammo === null ? "—" : String(player.ammo[ammo])}
             unit={ammo === null ? undefined : ammoNames[ammo]}
+            className="text-[32px] leading-8"
+          />
+          <Stat
+            label="Kills"
+            value={`${snapshot.kills}/${snapshot.totalKills}`}
+            className="text-[32px] leading-8"
           />
         </dl>
-      </div>
-      <dl className="flex gap-6">
-        <Stat
-          label="Kills"
-          value={`${snapshot.kills}/${snapshot.totalKills}`}
-        />
-        <div className="grid content-between gap-1">
-          <dt className={labelClass}>Keys</dt>
-          <dd className="flex h-7 items-center gap-1.5 text-sm">
+        <dl className="arcade-panel-row items-center justify-between py-3">
+          <dt className="arcade-label">Keys</dt>
+          <dd className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm leading-[18px]">
             {keys.length === 0 ? (
               <span className="text-muted-foreground">None</span>
             ) : (
               keys.map((key) => (
-                <span key={key} className="flex items-center gap-1">
+                <span key={key} className="flex items-center gap-2">
                   <span
-                    aria-hidden
-                    className={`size-2.5 rounded-sm ${keyColors[key.split(" ")[0] ?? ""] ?? "bg-foreground"}`}
+                    aria-hidden="true"
+                    className={`size-2.5 ${keyColors[key.split(" ")[0] ?? ""] ?? "bg-foreground"}`}
                   />
                   {key.charAt(0).toUpperCase() + key.slice(1)}
                 </span>
               ))
             )}
           </dd>
-        </div>
-      </dl>
-    </section>
+        </dl>
+      </section>
+      <div className="flex flex-col gap-2.5">
+        <p aria-hidden="true" className="arcade-label">
+          Weapon · toolbar
+        </p>
+        <Toolbar aria-label="Weapons">
+          <ToggleGroup
+            deselectable={false}
+            value={[String(player.weapon)]}
+            onValueChange={([value]) => {
+              const weapon = weapons.find((w) => String(w.index) === value);
+              if (weapon) onWeaponChange(weapon.key);
+            }}
+            className="flex flex-wrap gap-2"
+          >
+            {owned.map((weapon) => (
+              <Toggle
+                key={weapon.index}
+                value={String(weapon.index)}
+                className="group flex items-center gap-2 border-[1.5px] border-input px-2.5 py-[7px] text-sm leading-[18px] text-secondary-foreground hover:border-foreground data-pressed:border-foreground data-pressed:bg-foreground data-pressed:font-semibold data-pressed:text-background data-pressed:shadow-[3px_3px_0_var(--color-accent)]"
+              >
+                <span
+                  aria-hidden="true"
+                  className="font-readout text-lg leading-4 text-muted-foreground group-data-pressed:text-background"
+                >
+                  {weapon.key}
+                </span>
+                {weapon.name}
+              </Toggle>
+            ))}
+          </ToggleGroup>
+        </Toolbar>
+      </div>
+    </>
   );
 }
-
-const labelClass =
-  "text-[11px] font-medium tracking-wider text-muted-foreground uppercase";
 
 interface StatProps {
   label: string;
   value: string;
   unit?: string;
-  tone?: string;
+  className: string;
 }
 
-function Stat({ label, value, unit, tone }: StatProps) {
+function Stat({ label, value, unit, className }: StatProps) {
   return (
-    <div className="grid content-between gap-1">
-      <dt className={labelClass}>{label}</dt>
-      <dd
-        className={`flex h-7 items-baseline gap-1 text-2xl leading-7 font-semibold tabular-nums ${tone ?? ""}`}
-      >
-        {value}
+    <div className="arcade-stat">
+      <dt className="arcade-label">{label}</dt>
+      <dd className="flex items-baseline gap-1.5">
+        <span className={`arcade-readout ${className}`}>{value}</span>
         {unit ? (
-          <span className="text-xs font-normal text-muted-foreground">
+          <span className="text-[13px] leading-4 text-muted-foreground">
             {unit}
           </span>
         ) : null}
