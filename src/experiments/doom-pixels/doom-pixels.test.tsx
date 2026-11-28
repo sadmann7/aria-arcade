@@ -13,7 +13,6 @@ import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import type { DoomRequest, DoomResponse } from "./doom-worker";
 
 import { DoomPixels } from "./doom-pixels";
-import { hexColor } from "./resolution";
 
 declare global {
   var __UI_SDK_STRICT__: boolean | undefined;
@@ -115,7 +114,7 @@ it("names every control and draws one grid cell per pixel", async () => {
     ).toBeTruthy();
   }
   const labels = components.map((entry) => entry.label);
-  for (const label of ["Resolution", "Paint with", "Show grid", "Sound"]) {
+  for (const label of ["Resolution", "Show grid", "Sound"]) {
     expect(labels, `${label} is missing from the snapshot`).toContain(label);
   }
   const grid = screen.getByRole("grid", { name: "Doom screen, 160 × 100" });
@@ -236,69 +235,8 @@ async function sendFrame(color: number, frame: number) {
   );
 }
 
-function cellColor() {
-  return screen.getAllByRole("gridcell")[0]?.style.backgroundColor;
-}
-
-function rowStyle() {
-  return screen.getAllByRole("row")[0]?.getAttribute("style") ?? "";
-}
-
-it.each(["Live cells", "Style writes"])(
-  "repaints a pixel that changes on frames in a row with %s",
-  async (mode) => {
-    const user = userEvent.setup();
-    render(<DoomPixels />);
-    await user.click(screen.getByRole("radio", { name: mode }));
-    for (const [index, color] of [0x080808, 0x101010, 0x181818].entries()) {
-      await sendFrame(color, index + 1);
-      expect(cellColor()).toBe(hexToRgb(hexColor(color)));
-    }
-  },
-);
-
-it("paints whole scanlines as gradients with Live rows", async () => {
-  const user = userEvent.setup();
-  render(<DoomPixels />);
-  await user.click(screen.getByRole("radio", { name: "Live rows" }));
-  await user.click(screen.getByRole("switch", { name: "Show grid" }));
-  await screen.findByRole("switch", { name: "Show grid", checked: true });
-  for (const [index, color] of [0x080808, 0x101010].entries()) {
-    await sendFrame(color, index + 1);
-    expect(rowStyle()).toContain(hexToRgb(hexColor(color)));
-  }
-  expect(cellColor()).not.toBe(hexToRgb("#101010"));
-
-  await user.click(screen.getByRole("radio", { name: "Live cells" }));
-  await sendFrame(0x101010, 3);
-  expect(cellColor()).toBe(hexToRgb("#101010"));
-  expect(rowStyle()).not.toContain("gradient");
-});
-
-it("starts a new resolution with no gradients from the old one", async () => {
-  const user = userEvent.setup();
-  render(<DoomPixels />);
-  await user.click(screen.getByRole("radio", { name: "Live rows" }));
-  await sendFrame(0x080808, 1);
-  expect(rowStyle()).toContain("gradient");
-  await user.click(screen.getByRole("combobox", { name: "Resolution" }));
-  await user.click(await screen.findByRole("option", { name: /^40 × 25/ }));
-  await screen.findByRole("grid", { name: "Doom screen, 40 × 25" });
-  for (const row of screen.getAllByRole("row")) {
-    expect(row.getAttribute("style") ?? "").not.toContain("gradient");
-  }
-  await user.click(screen.getByRole("radio", { name: "Live cells" }));
-  await user.click(screen.getByRole("combobox", { name: "Resolution" }));
-  await user.click(await screen.findByRole("option", { name: /^80 × 50/ }));
-  await screen.findByRole("grid", { name: "Doom screen, 80 × 50" });
-  for (const row of screen.getAllByRole("row")) {
-    expect(row.getAttribute("style") ?? "").not.toContain("gradient");
-  }
-});
-
 function stubCanvas() {
   const puts: { top: number; rows: number; first: number[] }[] = [];
-  const clears: number[] = [];
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
     () =>
       ({
@@ -316,38 +254,29 @@ function stubCanvas() {
         ) => {
           puts.push({ top, rows, first: [...image.data.subarray(0, 4)] });
         },
-        clearRect: () => clears.push(1),
       }) as unknown as CanvasRenderingContext2D,
   );
-  return { puts, clears };
+  return puts;
 }
 
-it("paints frames into the grid's canvas and leaves the cells clear", async () => {
-  const canvas = stubCanvas();
-  const user = userEvent.setup();
+it("paints each frame into the grid's canvas", async () => {
+  const puts = stubCanvas();
   render(<DoomPixels />);
-  expect(
-    screen.getByRole("radio", { name: "Canvas" }).getAttribute("aria-checked"),
-  ).toBe("true");
+  const canvas = document.querySelector("canvas");
+  expect(canvas?.width).toBe(160);
+  expect(canvas?.height).toBe(100);
+  expect(canvas?.getAttribute("aria-hidden")).toBe("true");
   await sendFrame(0x102030, 1);
-  expect(canvas.puts).toEqual([
-    { top: 0, rows: 100, first: [16, 32, 48, 255] },
-  ]);
-  expect(cellColor()).not.toBe(hexToRgb("#102030"));
+  expect(puts).toEqual([{ top: 0, rows: 100, first: [16, 32, 48, 255] }]);
 
   await sendFrame(0x102030, 2);
-  expect(canvas.puts).toHaveLength(1);
-
-  await user.click(screen.getByRole("radio", { name: "Live cells" }));
-  expect(canvas.clears).toHaveLength(1);
+  expect(puts).toHaveLength(1);
   vi.restoreAllMocks();
 });
 
-it("repaints only the rows that changed on the canvas", async () => {
-  const canvas = stubCanvas();
-  const user = userEvent.setup();
+it("repaints only the rows that changed", async () => {
+  const puts = stubCanvas();
   render(<DoomPixels />);
-  await user.click(screen.getByRole("radio", { name: "Canvas" }));
   await sendFrame(0x080808, 1);
   const colors = new Int32Array(16_000).fill(0x080808);
   colors.fill(0xf8f8f8, 160 * 40, 160 * 42);
@@ -360,12 +289,20 @@ it("repaints only the rows that changed on the canvas", async () => {
       engineFrame: 2,
     }),
   );
-  await vi.waitFor(() => expect(canvas.puts).toHaveLength(2));
-  expect(canvas.puts[1]).toMatchObject({ top: 40, rows: 2 });
+  await vi.waitFor(() => expect(puts).toHaveLength(2));
+  expect(puts[1]).toMatchObject({ top: 40, rows: 2 });
   vi.restoreAllMocks();
 });
 
-function hexToRgb(hex: string) {
-  const value = Number.parseInt(hex.slice(1), 16);
-  return `rgb(${value >> 16}, ${(value >> 8) & 255}, ${value & 255})`;
-}
+it("reads out the color of the pixel under a paused cell", async () => {
+  render(<DoomPixels />);
+  await sendFrame(0x102030, 1);
+  const cell = screen.getAllByRole("gridcell")[0];
+  if (!cell) throw new Error("No cells.");
+  act(() => cell.focus());
+  fireEvent.keyDown(cell, { key: "p", code: "KeyP" });
+  fireEvent.keyDown(cell, { key: "ArrowRight", code: "ArrowRight" });
+  expect(document.activeElement?.getAttribute("aria-label")).toBe(
+    "#102030, row 1, column 2",
+  );
+});
