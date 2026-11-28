@@ -316,7 +316,15 @@ const PixelGrid = React.memo(function PixelGrid({
   controller,
   describe,
 }: PixelGridProps) {
-  const rowIndexes = Array.from({ length: rows }, (_, row) => row);
+  const [shown, setShown] = React.useState({ current: 0, previous: 0 });
+  const rowIndexes = [...new Set([shown.previous, shown.current])].toSorted(
+    (a, b) => a - b,
+  );
+  const reveal = React.useCallback(({ row }: GridCell) => {
+    setShown((last) =>
+      last.current === row ? last : { current: row, previous: last.current },
+    );
+  }, []);
   const columnIndexes = Array.from({ length: columns }, (_, col) => col);
   return (
     <PixelGridRoot
@@ -324,6 +332,7 @@ const PixelGrid = React.memo(function PixelGrid({
       columns={columns}
       controller={controller}
       describe={describe}
+      reveal={reveal}
       aria-label={`Doom screen, ${resolutionLabel(columns)}`}
       style={
         {
@@ -331,7 +340,7 @@ const PixelGrid = React.memo(function PixelGrid({
           "--rows": rows,
         } as React.CSSProperties
       }
-      className="relative isolate grid size-full grid-rows-[repeat(var(--rows),1fr)]"
+      className="relative isolate size-full"
     >
       <PixelGridCanvas className="pointer-events-none absolute inset-0 -z-10 size-full [image-rendering:pixelated]" />
       {rowIndexes.map((row) => (
@@ -339,7 +348,8 @@ const PixelGrid = React.memo(function PixelGrid({
           key={row}
           id={rowKey(row)}
           row={row}
-          className="grid grid-cols-[repeat(var(--columns),1fr)]"
+          style={{ top: `${(row * 100) / rows}%` }}
+          className="absolute inset-x-0 grid h-[calc(100%/var(--rows))] grid-cols-[repeat(var(--columns),1fr)]"
         >
           {columnIndexes.map((col) => (
             <PixelGridCell

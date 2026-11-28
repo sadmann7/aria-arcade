@@ -101,7 +101,7 @@ function keys() {
   return sent.filter((message) => message.type === "key");
 }
 
-it("names every control and draws one grid cell per pixel", async () => {
+it("names every control and mounts only the first row of cells", async () => {
   const agent = createAgent();
   render(<DoomPixels />);
   const components = agent
@@ -118,8 +118,11 @@ it("names every control and draws one grid cell per pixel", async () => {
     expect(labels, `${label} is missing from the snapshot`).toContain(label);
   }
   const grid = screen.getByRole("grid", { name: "Doom screen, 160 × 100" });
-  expect(grid.querySelectorAll('[role="row"]')).toHaveLength(100);
-  expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(16_000);
+  expect(grid.getAttribute("aria-rowcount")).toBe("100");
+  const rows = grid.querySelectorAll('[role="row"]');
+  expect(rows).toHaveLength(1);
+  expect(rows[0]?.getAttribute("aria-rowindex")).toBe("1");
+  expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(160);
   await vi.waitFor(() =>
     expect(sent).toContainEqual(
       expect.objectContaining({ type: "start", columns: 160 }),
@@ -173,7 +176,7 @@ it("rebuilds the grid at a new resolution", async () => {
   const grid = await screen.findByRole("grid", {
     name: "Doom screen, 40 × 25",
   });
-  expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(1000);
+  expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(40);
   expect(sent).toContainEqual({ type: "resolution", columns: 40 });
 });
 
@@ -304,5 +307,48 @@ it("reads out the color of the pixel under a paused cell", async () => {
   fireEvent.keyDown(cell, { key: "ArrowRight", code: "ArrowRight" });
   expect(document.activeElement?.getAttribute("aria-label")).toBe(
     "#102030, row 1, column 2",
+  );
+});
+
+function rowIndexes() {
+  return screen
+    .getAllByRole("row")
+    .map((row) => row.getAttribute("aria-rowindex"));
+}
+
+it("mounts a row as arrows reach it and keeps the one focus left", async () => {
+  render(<DoomPixels />);
+  const cell = screen.getAllByRole("gridcell")[0];
+  if (!cell) throw new Error("No cells.");
+  act(() => cell.focus());
+  fireEvent.keyDown(cell, { key: "p", code: "KeyP" });
+  fireEvent.keyDown(cell, { key: "ArrowDown", code: "ArrowDown" });
+  await vi.waitFor(() =>
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "#000000, row 2, column 1",
+    ),
+  );
+  expect(rowIndexes()).toEqual(["1", "2"]);
+  const next = document.activeElement;
+  if (!(next instanceof HTMLElement)) throw new Error("No focus.");
+  fireEvent.keyDown(next, { key: "PageDown", code: "PageDown" });
+  await vi.waitFor(() =>
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "#000000, row 10, column 1",
+    ),
+  );
+  expect(rowIndexes()).toEqual(["2", "10"]);
+});
+
+it("focuses the pixel under a press on a row that isn't mounted", async () => {
+  render(<DoomPixels />);
+  const grid = screen.getByRole("grid");
+  grid.getBoundingClientRect = () =>
+    ({ top: 0, left: 0, width: 1600, height: 1000 }) as DOMRect;
+  fireEvent.pointerDown(grid, { clientX: 805, clientY: 455 });
+  await vi.waitFor(() =>
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "#000000, row 46, column 81",
+    ),
   );
 });
