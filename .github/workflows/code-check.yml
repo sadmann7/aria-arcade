@@ -55,10 +55,21 @@ jobs:
 
       - run: pnpm test
 
+  engine:
+    runs-on: ubuntu-latest
+    name: Engine
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+      - uses: ./.github/setup
+      - uses: ./.github/engine
+
   deploy:
-    # Fork pull requests get no secrets, so they can't deploy.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    needs: [format, lint, typecheck, test]
+    # Fork pull requests get no secrets, and nothing deploys until the Vercel
+    # project is linked through these variables.
+    if: vars.VERCEL_PROJECT_ID != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+    needs: [format, lint, typecheck, test, engine]
     runs-on: ubuntu-latest
     name: Deploy
     timeout-minutes: 20
