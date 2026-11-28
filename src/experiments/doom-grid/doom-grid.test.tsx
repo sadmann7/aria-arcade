@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { createAgent } from "@ui-sdk/react/agent";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import type { DoomRequest, DoomResponse } from "./doom-worker";
 
@@ -32,7 +32,39 @@ beforeEach(() => {
   HTMLCanvasElement.prototype.getContext = () => null;
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+function stubAudio() {
+  vi.stubGlobal(
+    "AudioContext",
+    class {
+      sampleRate = 48_000;
+      state = "running";
+      destination = {};
+      audioWorklet = { addModule: () => Promise.resolve() };
+      close() {
+        return Promise.resolve();
+      }
+    },
+  );
+  vi.stubGlobal(
+    "AudioWorkletNode",
+    class {
+      port = { postMessage() {} };
+      connect() {}
+    },
+  );
+  vi.stubGlobal(
+    "URL",
+    Object.assign(URL, {
+      createObjectURL: () => "blob:",
+      revokeObjectURL() {},
+    }),
+  );
+}
 
 it("names every control, and an agent can slow the game down", async () => {
   const agent = createAgent();
@@ -47,7 +79,13 @@ it("names every control, and an agent can slow the game down", async () => {
     ).toBeTruthy();
   }
   const labels = components.map((entry) => entry.label);
-  for (const label of ["Show 3D view", "Slow", "Pause on select", "Map"]) {
+  for (const label of [
+    "Show 3D view",
+    "Slow",
+    "Sound",
+    "Pause on select",
+    "Map",
+  ]) {
     expect(labels, `${label} is missing from the snapshot`).toContain(label);
   }
   expect(screen.getByRole("grid", { name: "Map" })).toBeTruthy();
@@ -58,6 +96,38 @@ it("names every control, and an agent can slow the game down", async () => {
   });
   expect(result.ok, result.error?.message).toBe(true);
   expect(sent).toContainEqual({ type: "speed", percent: 40 });
+});
+
+it("mutes the game from the sound switch", async () => {
+  stubAudio();
+  render(<DoomGrid />);
+  const toggle = screen.getByRole("switch", { name: "Sound" });
+  expect(toggle.getAttribute("aria-checked")).toBe("true");
+  toggle.click();
+  await screen.findByRole("switch", { name: "Sound", checked: false });
+  expect(sent).toContainEqual({ type: "sound", isMuted: true });
+});
+
+it("turns the sound switch off and says why when audio is unavailable", async () => {
+  render(<DoomGrid />);
+  const toggle = await screen.findByRole("switch", {
+    name: "Sound",
+    checked: false,
+  });
+  expect(toggle.hasAttribute("disabled")).toBe(true);
+  expect(toggle.getAttribute("aria-describedby")).toBeTruthy();
+  expect(screen.getByText("Needs HTTPS or localhost")).toBeTruthy();
+});
+
+it("pauses the game while the tab is hidden", () => {
+  render(<DoomGrid />);
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    value: true,
+  });
+  document.dispatchEvent(new Event("visibilitychange"));
+  delete (document as { hidden?: boolean }).hidden;
+  expect(sent).toContainEqual({ type: "hidden", isHidden: true });
 });
 
 it("keeps the game running with the 3D view hidden", async () => {
