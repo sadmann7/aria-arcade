@@ -1,7 +1,7 @@
 export const screenWidth = 320;
 export const screenHeight = 200;
 export const columnChoices = [40, 64, 80, 106, 128, 160, 192, 320] as const;
-export const defaultColumns = 80;
+export const defaultColumns = 160;
 export const gridLinesUpTo = 160;
 
 export function rowsFor(columns: number) {

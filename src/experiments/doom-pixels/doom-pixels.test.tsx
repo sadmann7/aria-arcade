@@ -114,12 +114,12 @@ it("names every control and draws one grid cell per pixel", async () => {
   for (const label of ["Resolution", "Paint with", "Show grid", "Sound"]) {
     expect(labels, `${label} is missing from the snapshot`).toContain(label);
   }
-  const grid = screen.getByRole("grid", { name: "Doom screen, 80 × 50" });
-  expect(grid.querySelectorAll('[role="row"]')).toHaveLength(50);
-  expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(4000);
+  const grid = screen.getByRole("grid", { name: "Doom screen, 160 × 100" });
+  expect(grid.querySelectorAll('[role="row"]')).toHaveLength(100);
+  expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(16_000);
   await vi.waitFor(() =>
     expect(sent).toContainEqual(
-      expect.objectContaining({ type: "start", columns: 80 }),
+      expect.objectContaining({ type: "start", columns: 160 }),
     ),
   );
 });
@@ -215,13 +215,13 @@ it("says how to build the engine when it's missing", () => {
 });
 
 async function sendFrame(color: number, frame: number) {
-  const colors = new Int32Array(4000).fill(color);
+  const colors = new Int32Array(16_000).fill(color);
   act(() =>
     reply({
       type: "frame",
       buffer: colors.buffer,
-      columns: 80,
-      rows: 50,
+      columns: 160,
+      rows: 100,
       engineFrame: frame,
     }),
   );
@@ -256,7 +256,11 @@ it.each(["Live cells", "Style writes"])(
 it("paints whole scanlines as gradients with Live rows", async () => {
   const user = userEvent.setup();
   render(<DoomPixels />);
-  await user.click(screen.getByRole("radio", { name: "Live rows" }));
+  expect(
+    screen
+      .getByRole("radio", { name: "Live rows" })
+      .getAttribute("aria-checked"),
+  ).toBe("true");
   expect(screen.getByRole("switch", { name: "Show grid" })).toHaveProperty(
     "disabled",
     true,
@@ -276,7 +280,6 @@ it("paints whole scanlines as gradients with Live rows", async () => {
 it("starts a new resolution with no gradients from the old one", async () => {
   const user = userEvent.setup();
   render(<DoomPixels />);
-  await user.click(screen.getByRole("radio", { name: "Live rows" }));
   await sendFrame(0x080808, 1);
   expect(rowStyle()).toContain("gradient");
   await user.click(screen.getByRole("combobox", { name: "Resolution" }));

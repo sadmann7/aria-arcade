@@ -38,7 +38,7 @@ import { type DoomFrame, useDoom } from "./use-doom";
 
 export function DoomPixels() {
   const [columns, setColumns] = React.useState<number>(defaultColumns);
-  const [mode, setMode] = React.useState<PaintMode>("cells");
+  const [mode, setMode] = React.useState<PaintMode>("rows");
   const [isGridShown, setIsGridShown] = React.useState(false);
   const [isSoundOn, setIsSoundOn] = React.useState(true);
   const [isPaused, setIsPaused] = React.useState(false);
