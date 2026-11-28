@@ -4,6 +4,8 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: { default: "Aria Arcade", template: "%s · Aria Arcade" },
   description: "Fun, useless things built from accessible UI behaviors.",
+  openGraph: { siteName: "Aria Arcade", type: "website" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
