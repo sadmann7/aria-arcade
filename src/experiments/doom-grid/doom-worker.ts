@@ -1,6 +1,7 @@
 interface DoomModule {
   FS: { writeFile(path: string, data: Uint8Array | string): void };
   HEAPU8: Uint8Array;
+  HEAPF32: Float32Array;
   UTF8ToString(pointer: number): string;
   callMain(args: string[]): number;
   _wadsmith_run_frame(): void;
@@ -21,6 +22,9 @@ interface DoomModule {
   _doom_grid_fire(id: number): number;
   _doom_grid_use(line: number): number;
   _doom_grid_set_speed(percent: number): void;
+  _wadsmith_audio_init(sampleRate: number): void;
+  _wadsmith_audio_render(frames: number): number;
+  _wadsmith_set_sound(volume: number, muted: number): void;
 }
 
 type CreateDoom = (options: {
@@ -29,7 +33,12 @@ type CreateDoom = (options: {
 }) => Promise<DoomModule>;
 
 export type DoomRequest =
-  | { type: "start"; engineBase: string }
+  | {
+      type: "start";
+      engineBase: string;
+      sampleRate: number;
+      audioPort: MessagePort | null;
+    }
   | { type: "path"; points: { x: number; y: number }[] }
   | { type: "stop" }
   | { type: "fire"; id: number }
@@ -37,7 +46,9 @@ export type DoomRequest =
   | { type: "continue" }
   | { type: "weapon"; key: string }
   | { type: "speed"; percent: number }
-  | { type: "pause"; isPaused: boolean };
+  | { type: "pause"; isPaused: boolean }
+  | { type: "hidden"; isHidden: boolean }
+  | { type: "sound"; isMuted: boolean };
 
 export type DoomResponse =
   | {
@@ -73,6 +84,12 @@ novert 1
 freelook 0
 player_bobbing 1
 autosave 0
+snd_module 0
+snd_channels 8
+snd_limiter 0
+pitched_sounds 0
+full_sounds 0
+extra_music 0
 `;
 
 let doom: DoomModule | null = null;
@@ -87,12 +104,18 @@ const levelState = 0;
 let gameState = -1;
 let speed = 100;
 let isPaused = false;
+let isHidden = false;
+let isMuted = false;
+const soundVolume = 8;
+const audioBlockFrames = 512;
+const audioBlocksAhead = 4;
+const audioPumpMs = 4;
 const errors: string[] = [];
 
 scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
   const request = event.data;
   if (request.type === "start") {
-    start(request.engineBase).catch((error: unknown) =>
+    start(request).catch((error: unknown) =>
       post({
         type: "error",
         message:
@@ -104,6 +127,8 @@ scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
   }
   if (request.type === "speed") speed = request.percent;
   if (request.type === "pause") isPaused = request.isPaused;
+  if (request.type === "hidden") isHidden = request.isHidden;
+  if (request.type === "sound") isMuted = request.isMuted;
   if (!doom) return;
   const engine = doom;
   if (request.type === "path") {
@@ -121,13 +146,22 @@ scope.addEventListener("message", (event: MessageEvent<DoomRequest>) => {
     setTimeout(() => engine._wadsmith_key(0, key), keyTapMs);
   } else if (request.type === "speed") {
     engine._doom_grid_set_speed(request.percent);
-  } else engine._wadsmith_set_paused(request.isPaused ? 1 : 0);
+  } else if (request.type === "sound") applySound(engine);
+  else {
+    engine._wadsmith_set_paused(isPaused || isHidden ? 1 : 0);
+    // Pausing does nothing between levels, so a hidden tab mutes too.
+    if (request.type === "hidden") applySound(engine);
+  }
 });
 
 const missingEngineMessage =
   "The Doom engine isn't built in this checkout. Run pnpm setup:engine, then reload.";
 
-async function start(engineBase: string) {
+async function start({
+  engineBase,
+  sampleRate,
+  audioPort,
+}: Extract<DoomRequest, { type: "start" }>) {
   // The build writes engine.json last, so it only exists once every file does.
   const built = await fetch(`${engineBase}engine.json`, { method: "HEAD" });
   if (!built.ok) throw new Error(missingEngineMessage);
@@ -145,6 +179,7 @@ async function start(engineBase: string) {
   engine.FS.writeFile("/freedoom2.wad", wad);
   engine.FS.writeFile("/woof.pk3", base);
   engine.FS.writeFile("/woof.cfg", engineConfig);
+  if (audioPort) engine._wadsmith_audio_init(sampleRate);
   engine.callMain([
     "-iwad",
     "/freedoom2.wad",
@@ -155,12 +190,14 @@ async function start(engineBase: string) {
     "-nogui",
     "-config",
     "/woof.cfg",
-    "-nosound",
-    "-nomusic",
-    "-nosfx",
+    ...(audioPort ? [] : ["-nosound", "-nomusic", "-nosfx"]),
   ]);
   doom = engine;
   engine._doom_grid_set_speed(speed);
+  if (audioPort) {
+    applySound(engine);
+    pumpAudio(engine, audioPort);
+  }
   setInterval(runFrame, frameMs);
 }
 
@@ -175,7 +212,7 @@ function runFrame() {
   const state = doom._wadsmith_game_state();
   // Pausing only takes while a level runs, so a pause asked for on another
   // screen waits for the next level.
-  if (state !== gameState && state === levelState && isPaused) {
+  if (state !== gameState && state === levelState && (isPaused || isHidden)) {
     doom._wadsmith_set_paused(1);
   }
   if (state !== gameState && state === intermissionState) {
@@ -209,6 +246,41 @@ function sendFrame(module: DoomModule) {
   post({ type: "frame", buffer: pixels.buffer, width, height }, [
     pixels.buffer,
   ]);
+}
+
+function applySound(engine: DoomModule) {
+  engine._wadsmith_set_sound(soundVolume, isMuted || isHidden ? 1 : 0);
+}
+
+function pumpAudio(engine: DoomModule, port: MessagePort) {
+  let sent = 0;
+  let played = 0;
+  port.addEventListener("message", (event: MessageEvent<number>) => {
+    played = event.data;
+  });
+  port.start();
+  setInterval(() => {
+    while (sent - played < audioBlockFrames * audioBlocksAhead) {
+      const channels = renderAudio(engine, audioBlockFrames);
+      port.postMessage(
+        channels,
+        channels.map((channel) => channel.buffer),
+      );
+      sent += audioBlockFrames;
+    }
+  }, audioPumpMs);
+}
+
+function renderAudio(engine: DoomModule, frames: number) {
+  const start = engine._wadsmith_audio_render(frames) >> 2;
+  const samples = engine.HEAPF32;
+  const left = new Float32Array(frames);
+  const right = new Float32Array(frames);
+  for (let index = 0; index < frames; index += 1) {
+    left[index] = samples[start + index * 2] ?? 0;
+    right[index] = samples[start + index * 2 + 1] ?? 0;
+  }
+  return [left, right];
 }
 
 async function fetchBytes(url: string) {

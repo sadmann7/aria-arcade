@@ -43,11 +43,19 @@ interface Latest {
 export function DoomGrid() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const gridRef = React.useRef<HTMLDivElement>(null);
-  const { snapshot, lines, origin, isIntermission, error, send } =
-    useDoom(canvasRef);
+  const {
+    snapshot,
+    lines,
+    origin,
+    isIntermission,
+    error,
+    isAudioAvailable,
+    send,
+  } = useDoom(canvasRef);
   const [isViewShown, setIsViewShown] = React.useState(true);
   const [isSlow, setIsSlow] = React.useState(false);
   const [isPauseOnSelect, setIsPauseOnSelect] = React.useState(false);
+  const [isSoundOn, setIsSoundOn] = React.useState(true);
   const [controller] = React.useState(createMapGridController);
   const latest = React.useRef<Latest>({
     grid: null,
@@ -228,6 +236,18 @@ export function DoomGrid() {
             onCheckedChange={(isChecked) => {
               setIsSlow(isChecked);
               send({ type: "speed", percent: isChecked ? slowPercent : 100 });
+            }}
+          />
+          <SettingSwitch
+            label="Sound"
+            isChecked={isSoundOn && isAudioAvailable}
+            isDisabled={!isAudioAvailable}
+            description={
+              isAudioAvailable ? undefined : "Needs HTTPS or localhost"
+            }
+            onCheckedChange={(isChecked) => {
+              setIsSoundOn(isChecked);
+              send({ type: "sound", isMuted: !isChecked });
             }}
           />
           <SettingSwitch
