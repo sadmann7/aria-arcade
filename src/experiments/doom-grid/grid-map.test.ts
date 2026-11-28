@@ -168,6 +168,10 @@ describe("buildGrid", () => {
     expect(
       findPath(opened, gridPosition(origin, 32, 32), closet)?.at(-1),
     ).toEqual(closet);
+    const doorCell = opened.mapCells.find((cell) => cell.terrain === "door");
+    expect(doorCell && describeCell(doorCell, snapshot)).toBe(
+      "Open blue locked door",
+    );
   });
 });
 

@@ -393,8 +393,9 @@ export function directionFrom(
 
 function describeDoor(door: Door | null) {
   if (!door) return "door";
-  const key = door.key ? `${doorKeyNames[door.key]} locked door` : "door";
-  return key;
+  const name = door.key ? `${doorKeyNames[door.key]} locked door` : "door";
+  if (door.isMoving) return `${name}, moving`;
+  return door.open > 0 ? `open ${name}` : name;
 }
 
 function monsterText(monster: Monster) {
