@@ -11,4 +11,10 @@ export const experiments: Experiment[] = [
     description:
       "Play Freedoom through an accessible grid that mirrors the live game, even with a screen reader.",
   },
+  {
+    slug: "infinite-combobox",
+    title: "Infinite combobox",
+    description:
+      "Every option opens another combobox, 400 layers deep. Escape climbs back up one at a time.",
+  },
 ];
