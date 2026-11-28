@@ -8,12 +8,14 @@ import {
   rowFromBottom,
   visit,
 } from "./game";
+import { type Effect, effectsOf } from "./sound";
 
 export interface SessionOptions {
   game: Game;
   names: Record<string, string>;
   say: (text: string) => void;
   gap?: number;
+  play?: (effect: Effect, step?: number) => void;
 }
 
 export interface Session {
@@ -87,6 +89,7 @@ export function createSession({
   names,
   say,
   gap,
+  play,
 }: SessionOptions): Session {
   let state = game;
   const listeners = new Set<() => void>();
@@ -110,14 +113,25 @@ export function createSession({
       const before = state;
       const after = update(before);
       set(after);
+      for (const effect of effectsOf(before, after)) play?.(effect);
       for (const [text, key] of describe(before, after, names)) {
         announcer.push(text, key);
       }
     },
     visit(cellId) {
+      const before = state;
       const result = visit(state, cellId);
       set(result.game);
+      if (result.cleared.length === 0 && result.game !== before) {
+        const row = before.cells.find((cell) => cell.id === cellId)?.row;
+        const visited = new Set(result.game.visited);
+        const step = result.game.cells.filter(
+          (cell) => cell.row === row && visited.has(cell.id),
+        ).length;
+        play?.("visit", step);
+      }
       if (result.cleared.length > 0) {
+        play?.("clear");
         const left = armedRows(result.game).length;
         const rows = list(result.cleared.map(rowFromBottom));
         const rest =
