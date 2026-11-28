@@ -60,7 +60,6 @@ export function Hud({ snapshot, onWeaponChange }: HudProps) {
           </span>
           <Toolbar aria-label="Weapons" className="flex flex-wrap gap-1">
             <ToggleGroup
-              aria-label="Weapon"
               deselectable={false}
               value={[String(player.weapon)]}
               onValueChange={([value]) => {

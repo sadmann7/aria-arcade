@@ -33,7 +33,7 @@ export function KeysPopover() {
       </PopoverTrigger>
       <PopoverContent
         side="top"
-        align="end"
+        align="start"
         className="m-0 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-card p-4 text-foreground shadow-xl"
       >
         <PopoverTitle className="mb-2 text-sm font-semibold">
