@@ -86,6 +86,7 @@ export interface Sound {
   isMuted: () => boolean;
   setMuted: (isMuted: boolean) => void;
   subscribe: (listener: () => void) => () => void;
+  close: () => void;
 }
 
 function readMuted() {
@@ -154,6 +155,10 @@ export function createSound(): Sound {
       return () => {
         listeners.delete(listener);
       };
+    },
+    close() {
+      void context?.close();
+      context = null;
     },
   };
 }

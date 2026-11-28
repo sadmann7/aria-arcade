@@ -14,6 +14,7 @@ class FakeAudioContext {
   state = "running";
   currentTime = 0;
   destination = {};
+  async close() {}
   createOscillator() {
     const param = {
       setValueAtTime: (value: number) => tones.push(value),

@@ -131,7 +131,9 @@ export function createSession({
         play?.("visit", step);
       }
       if (result.cleared.length > 0) {
+        const isLevelUp = level(result.game) > level(before);
         play?.("clear");
+        if (isLevelUp) play?.("level");
         const left = armedRows(result.game).length;
         const rows = list(result.cleared.map(rowFromBottom));
         const rest =
@@ -139,6 +141,9 @@ export function createSession({
             ? "Back to steering."
             : `${left} armed ${left === 1 ? "row" : "rows"} left.`;
         announcer.push(`Row ${rows} cleared. ${rest}`, "cleared");
+        if (isLevelUp) {
+          announcer.push(`Level ${level(result.game)}.`, "level");
+        }
       }
       return result.cleared;
     },

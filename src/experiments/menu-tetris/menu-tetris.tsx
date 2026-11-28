@@ -168,8 +168,11 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
 
   React.useEffect(() => {
     prepareAnnouncements(document);
-    return () => session.stop();
-  }, [session]);
+    return () => {
+      session.stop();
+      sound.close();
+    };
+  }, [session, sound]);
 
   React.useEffect(() => {
     if (!isRunning) return;
@@ -512,7 +515,12 @@ export function MenuTetris({ seed, initialGame }: MenuTetrisProps) {
             <Button
               className={buttonClass}
               aria-pressed={!isMuted}
-              onClick={() => sound.setMuted(!isMuted)}
+              onClick={() => {
+                sound.setMuted(!isMuted);
+                if (isStarted && !isOver && !pausedBy && mode === "steer") {
+                  boardRef.current?.focus();
+                }
+              }}
             >
               <span aria-hidden="true">{isMuted ? "🔇" : "🔊"}</span>
               Sound
