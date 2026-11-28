@@ -6,7 +6,21 @@ export default function HomePage() {
   return (
     <main className="mx-auto grid min-h-dvh w-full max-w-3xl content-start gap-10 px-4 py-12 sm:py-16">
       <header className="grid gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Aria Arcade</h1>
+        <h1 className="flex items-center gap-3 text-3xl font-semibold tracking-tight">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 16 16"
+            shapeRendering="crispEdges"
+            className="size-9 shrink-0 shadow-[3px_3px_0_var(--color-foreground)]"
+          >
+            <rect width="16" height="16" fill="var(--color-primary)" />
+            <path
+              fill="var(--color-background)"
+              d="M6 3h4v1h-4zM5 4h6v1h-6zM4 5h2v3h-2zM10 5h2v3h-2zM6 7h4v2h-4zM4 8h2v5h-2zM10 8h2v5h-2z"
+            />
+          </svg>
+          Aria Arcade
+        </h1>
         <p className="max-w-[60ch] text-pretty text-muted-foreground">
           Keyboard navigation, focus, selection, popups and drag and drop, used
           as game mechanics.

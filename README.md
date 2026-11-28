@@ -1,5 +1,7 @@
 # Aria Arcade
 
+![Aria Arcade](.github/logo.png)
+
 A playground of fun, useless things built with [UI SDK](https://www.npmjs.com/package/@ui-sdk/react). Its behaviors, such as keyboard navigation, focus, selection, popups and drag and drop, are used as game mechanics.
 
 Each experiment is one route in a single Next.js app, with its own folder in `src/experiments`.
