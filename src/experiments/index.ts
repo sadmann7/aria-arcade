@@ -6,6 +6,12 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
   {
+    slug: "calendar-snake",
+    title: "Calendar Snake",
+    description:
+      "Snake played in a calendar. The head is the focused date, the body is the selection, and meetings get in the way.",
+  },
+  {
     slug: "doom-grid",
     title: "Doom grid",
     description:
