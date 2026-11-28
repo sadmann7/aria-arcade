@@ -9,6 +9,7 @@ import { ammoNames, keyNames, weapons } from "./things";
 
 interface HudProps {
   snapshot: Snapshot | null;
+  isFailed: boolean;
   onWeaponChange: (key: string) => void;
 }
 
@@ -18,14 +19,14 @@ const keyColors: Record<string, string> = {
   red: "bg-red-500",
 };
 
-export function Hud({ snapshot, onWeaponChange }: HudProps) {
+export function Hud({ snapshot, isFailed, onWeaponChange }: HudProps) {
   if (!snapshot) {
     return (
       <section
         aria-label="Status"
         className="flex min-h-16 items-center rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground"
       >
-        Loading Freedoom…
+        {isFailed ? "Freedoom didn't load." : "Loading Freedoom…"}
       </section>
     );
   }

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { createAgent } from "@ui-sdk/react/agent";
 import { afterEach, beforeEach, expect, it } from "vitest";
 
-import type { DoomRequest } from "./doom-worker";
+import type { DoomRequest, DoomResponse } from "./doom-worker";
 
 import { DoomGrid } from "./doom-grid";
 
@@ -13,6 +13,7 @@ declare global {
 globalThis.__UI_SDK_STRICT__ = true;
 
 let sent: DoomRequest[] = [];
+let reply: (response: DoomResponse) => void = () => {};
 
 beforeEach(() => {
   sent = [];
@@ -20,7 +21,12 @@ beforeEach(() => {
     postMessage(message: DoomRequest) {
       sent.push(message);
     }
-    addEventListener() {}
+    addEventListener(
+      _type: string,
+      listener: (event: MessageEvent<DoomResponse>) => void,
+    ) {
+      reply = (data) => listener({ data } as MessageEvent<DoomResponse>);
+    }
     terminate() {}
   } as unknown as typeof Worker;
   HTMLCanvasElement.prototype.getContext = () => null;
@@ -63,4 +69,15 @@ it("keeps the game running with the 3D view hidden", async () => {
   expect(document.querySelector("canvas")).toBeNull();
   expect(screen.getByRole("grid", { name: "Map" })).toBeTruthy();
   expect(sent.filter((message) => message.type === "start")).toHaveLength(1);
+});
+
+it("says how to build the engine in place of the 3D view when it's missing", () => {
+  render(<DoomGrid />);
+  expect(document.querySelector("canvas")).not.toBeNull();
+  const message =
+    "The Doom engine isn't built in this checkout. Run pnpm setup:engine, then reload.";
+  act(() => reply({ type: "error", message }));
+  expect(screen.getByText(message).getAttribute("role")).toBe("alert");
+  expect(document.querySelector("canvas")).toBeNull();
+  expect(screen.getByText("Freedoom didn't load.")).toBeTruthy();
 });

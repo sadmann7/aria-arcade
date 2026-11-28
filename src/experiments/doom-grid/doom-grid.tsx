@@ -248,7 +248,7 @@ export function DoomGrid() {
       ) : null}
 
       <div
-        data-view={isViewShown ? "shown" : "hidden"}
+        data-view={isViewShown && !error ? "shown" : "hidden"}
         className="group/stage max-lg:contents lg:[container-type:size] lg:flex lg:h-[calc((min(100vw,1600px)-2.75rem)*3/7)] lg:min-h-0 lg:shrink lg:items-center lg:justify-center lg:gap-3 lg:data-[view=hidden]:h-full"
       >
         <MapGridRoot
@@ -298,7 +298,7 @@ export function DoomGrid() {
             </MapGridRow>
           ))}
         </MapGridRoot>
-        {isViewShown ? (
+        {isViewShown && !error ? (
           <canvas
             ref={canvasRef}
             aria-hidden
@@ -309,6 +309,7 @@ export function DoomGrid() {
 
       <Hud
         snapshot={snapshot}
+        isFailed={error !== null}
         onWeaponChange={(key) => send({ type: "weapon", key })}
       />
 

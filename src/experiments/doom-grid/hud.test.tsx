@@ -15,6 +15,7 @@ it("reads out the status and switches weapons from the toolbar", async () => {
   render(
     <Hud
       snapshot={{ ...snapshot, player: { ...snapshot.player, keys: 1 } }}
+      isFailed={false}
       onWeaponChange={onWeaponChange}
     />,
   );
