@@ -51,7 +51,7 @@ export const WIDGETS: Record<
 > = {
   I: {
     name: "I toolbar",
-    color: "oklch(0.82 0.13 210)",
+    color: "var(--color-foreground)",
     items: [
       ["Bold", "B"],
       ["Italic", "I"],
@@ -61,7 +61,7 @@ export const WIDGETS: Record<
   },
   O: {
     name: "O button group",
-    color: "oklch(0.88 0.15 95)",
+    color: "var(--color-accent)",
     items: [
       ["Star", "★"],
       ["Heart", "♥"],
@@ -71,7 +71,7 @@ export const WIDGETS: Record<
   },
   T: {
     name: "T menubar",
-    color: "oklch(0.74 0.17 305)",
+    color: "#ff9fc6",
     items: [
       ["File", "F"],
       ["Edit", "E"],
@@ -81,7 +81,7 @@ export const WIDGETS: Record<
   },
   S: {
     name: "S tab list",
-    color: "oklch(0.8 0.17 150)",
+    color: "var(--color-secondary-foreground)",
     items: [
       ["Tab 1", "1"],
       ["Tab 2", "2"],
@@ -91,7 +91,7 @@ export const WIDGETS: Record<
   },
   Z: {
     name: "Z segmented control",
-    color: "oklch(0.72 0.18 25)",
+    color: "#e8b86a",
     items: [
       ["Extra small", "XS"],
       ["Small", "S"],
@@ -101,7 +101,7 @@ export const WIDGETS: Record<
   },
   J: {
     name: "J radio group",
-    color: "oklch(0.72 0.14 260)",
+    color: "var(--color-muted-foreground)",
     items: [
       ["Yes", "Y"],
       ["No", "N"],
@@ -111,7 +111,7 @@ export const WIDGETS: Record<
   },
   L: {
     name: "L menubar",
-    color: "oklch(0.8 0.15 60)",
+    color: "#ffd978",
     items: [
       ["Undo", "↶"],
       ["Redo", "↷"],
@@ -148,7 +148,7 @@ const rootClass =
   "pointer-events-none grid grid-cols-subgrid grid-rows-subgrid";
 
 const itemClass =
-  "pointer-events-auto relative grid min-w-0 place-items-center rounded-[5px] border border-black/40 bg-(--piece) text-[0.7rem] leading-none font-bold text-black/80 shadow-[inset_0_1px_0_rgb(255_255_255/0.4),inset_0_-2px_0_rgb(0_0_0/0.25)] outline-none select-none [-webkit-tap-highlight-color:transparent] focus-visible:z-10 focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-white data-armed:ring-2 data-armed:ring-white data-armed:not-data-visited:motion-safe:animate-pulse data-visited:bg-[color-mix(in_oklch,var(--piece)_30%,#16141d)] data-visited:text-(--piece)";
+  "pointer-events-auto relative grid min-w-0 place-items-center border border-background bg-(--piece) text-xs leading-none font-bold text-background/80 shadow-[inset_0_-3px_0_color-mix(in_srgb,var(--color-background)_25%,transparent)] outline-none select-none [-webkit-tap-highlight-color:transparent] focus-visible:z-10 focus-visible:outline-3 focus-visible:outline-offset-1 focus-visible:outline-primary data-armed:border-[1.5px] data-armed:border-foreground data-armed:not-data-visited:motion-safe:animate-pulse data-visited:border data-visited:border-[color-mix(in_srgb,var(--piece)_50%,transparent)] data-visited:bg-[color-mix(in_srgb,var(--color-muted)_80%,var(--color-card))] data-visited:text-[13px] data-visited:text-(--piece) data-visited:shadow-none";
 
 interface PieceWidgetProps {
   piece: PieceView;
@@ -288,13 +288,13 @@ function MenubarPiece({ piece, orientation, onRegister }: PieceWidgetProps) {
           <MenuContent
             sideOffset={4}
             collisionPadding={8}
-            className="grid min-w-36 gap-0.5 rounded-lg border border-border bg-card p-1 text-sm text-foreground shadow-xl shadow-black/50"
+            className="arcade-panel m-0 min-w-36 gap-px p-1 text-sm leading-[18px] text-foreground"
           >
             {["Admire", "Poke", "Leave alone"].map((action) => (
               <MenuItem
                 key={action}
                 value={action}
-                className="cursor-default rounded-md px-2.5 py-1.5 outline-none data-highlighted:bg-muted"
+                className="cursor-default px-2.5 py-[7px] text-secondary-foreground outline-none data-highlighted:bg-primary data-highlighted:font-semibold data-highlighted:text-primary-foreground"
               >
                 {action}
               </MenuItem>

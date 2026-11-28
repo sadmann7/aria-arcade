@@ -414,6 +414,26 @@ describe("MenuTetris", () => {
     expect(document.activeElement).toBe(board());
   });
 
+  test("the Pause button in the side panel pauses instead of resuming", async () => {
+    const user = await setup(withPieces([]));
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await flush();
+    expect(screen.getByText("Paused")).not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "Resume" })).toHaveLength(2);
+  });
+
+  test("leaving the game from the side panel pauses it", async () => {
+    await setup(withPieces([]));
+    const pause = screen.getByRole("button", { name: "Pause" });
+    act(() => pause.focus());
+    await flush();
+    expect(screen.queryByText("Paused")).toBeNull();
+
+    act(() => pause.blur());
+    await flush();
+    expect(screen.getByText("Paused")).not.toBeNull();
+  });
+
   test("the game ends and offers another go", async () => {
     const user = await setup(
       withPieces(
