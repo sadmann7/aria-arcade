@@ -56,7 +56,7 @@ use_vsync 0
 uncapped 1
 fpslimit 0
 widescreen 0
-current_video_height 200
+current_video_height 400
 dynamic_resolution 0
 screenblocks 10
 screen_melt 0
