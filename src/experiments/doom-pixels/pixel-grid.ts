@@ -2,20 +2,13 @@ import {
   byCell,
   createController,
   createGridFocus,
-  css,
   definePrimitive,
   type GridCell,
-  live,
   selects,
 } from "@ui-sdk/core";
 
-import { hexColor } from "./resolution";
-
 export interface PixelGridController {
-  paint: (colors: Int32Array, changed: Record<string, number>) => void;
-  paintRows: (colors: Int32Array, changed: Record<string, string>) => void;
   paintCanvas: (colors: Int32Array, top: number, bottom: number) => void;
-  clearCanvas: () => void;
   focusCell: (cell: GridCell) => boolean;
 }
 
@@ -45,10 +38,8 @@ export function pixelKey(row: number, col: number) {
   return `${row}:${col}`;
 }
 
-const rowPrefix = "row-";
-
 export function rowKey(row: number) {
-  return `${rowPrefix}${row}`;
+  return `row-${row}`;
 }
 
 export const pixelGrid = definePrimitive({
@@ -59,17 +50,10 @@ export const pixelGrid = definePrimitive({
     describe: "action",
     controller: "value",
   },
-  live: ["changed", "changedRows"],
   state: (_options: PixelGridOptions) => ({
     active: null as GridCell | null,
-    // Each entry carries the new color, so a cell that changes on two frames
-    // in a row still hears the second change.
-    changed: {} as Record<string, number>,
-    changedRows: {} as Record<string, string>,
   }),
   api: (context) => {
-    let colors: Int32Array = new Int32Array(0);
-    const gradients: string[] = [];
     let canvas: HTMLCanvasElement | null = null;
     let canvasContext: CanvasRenderingContext2D | null = null;
     let image: ImageData | null = null;
@@ -86,21 +70,7 @@ export const pixelGrid = definePrimitive({
     });
     return {
       grid,
-      color: ({ row, col }: GridCell) =>
-        colors[row * context.options().columns + col] ?? 0,
       describe: (cell: GridCell) => context.options().describe?.(cell) ?? "",
-      gradient: (row: number) => gradients[row] ?? "",
-      paint: (next: Int32Array, changed: Record<string, number>) => {
-        colors = next;
-        context.store.set({ changed });
-      },
-      paintRows: (next: Int32Array, changed: Record<string, string>) => {
-        colors = next;
-        for (const [key, gradient] of Object.entries(changed)) {
-          gradients[Number(key.slice(rowPrefix.length))] = gradient;
-        }
-        context.store.set({ changedRows: changed });
-      },
       bindCanvas: (el: HTMLCanvasElement) => {
         const { rows, columns } = context.options();
         el.width = columns;
@@ -114,7 +84,6 @@ export const pixelGrid = definePrimitive({
         };
       },
       paintCanvas: (next: Int32Array, top: number, bottom: number) => {
-        colors = next;
         const drawn = drawing();
         if (!drawn || top < 0 || bottom < top) return;
         const { rows, columns } = context.options();
@@ -134,12 +103,6 @@ export const pixelGrid = definePrimitive({
         }
         drawn.putImageData(image, 0, 0, 0, top, columns, bottom - top + 1);
       },
-      clearCanvas: () => {
-        const drawn = drawing();
-        if (!drawn || !canvas) return;
-        drawn.clearRect(0, 0, canvas.width, canvas.height);
-        image = null;
-      },
       focusCell: (cell: GridCell) => grid.focus(cell, { reason: "imperative" }),
     };
   },
@@ -149,7 +112,7 @@ export const pixelGrid = definePrimitive({
       keys: { none: "Focus stays on a cell, whose keydown handles them." },
     }),
     canvas: slot({
-      selects: selects({ active: [], changed: [], changedRows: [] }),
+      selects: selects({ active: [] }),
       attrs: () => ({ "aria-hidden": "true" }),
       bind: (el, { api }) => {
         if (el instanceof HTMLCanvasElement) return api.bindCanvas(el);
@@ -158,26 +121,13 @@ export const pixelGrid = definePrimitive({
     row: slot<RowProps>({
       props: { id: "string", row: "number" },
       role: "row",
-      selects: selects({
-        active: [],
-        changed: [],
-        changedRows: ({ key }) => [key],
-      }),
-      live: live((_state, { props, api }) => ({
-        style: css({
-          "background-image": api.gradient(props.row) || undefined,
-        }),
-      })),
+      selects: selects({ active: [] }),
     }),
     cell: slot<CellProps>({
       props: { id: "string", row: "number", col: "number" },
       role: "gridcell",
       focus: "roving",
-      selects: selects({
-        active: byCell,
-        changed: ({ key }) => [key],
-        changedRows: [],
-      }),
+      selects: selects({ active: byCell }),
       keys: [
         "ArrowUp",
         "ArrowDown",
@@ -198,9 +148,6 @@ export const pixelGrid = definePrimitive({
           "data-active": isActive ? "" : undefined,
         };
       },
-      live: live((_state, { props, api }) => ({
-        style: css({ "background-color": hexColor(api.color(props)) }),
-      })),
       on: {
         keydown: (event, { api }) => {
           api.grid.keydown(event);
